@@ -1,10 +1,17 @@
+import AppLayout from '@/layouts/tailadmin/AppLayout';
+
 export default function FleetDashboard() {
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold">Fleet Dashboard</h1>
-            <p className="mt-2 text-gray-600">
-                Laravel 12 + React + Tailwind berhasil jalan.
-            </p>
-        </div>
+        <AppLayout>
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Fleet Dashboard
+                </h1>
+
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                    Laravel 12 + React + TailAdmin + Tailwind berhasil jalan.
+                </p>
+            </div>
+        </AppLayout>
     );
 }

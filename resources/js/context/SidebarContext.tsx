@@ -1,0 +1,74 @@
+import {
+    createContext,
+    ReactNode,
+    useContext,
+    useState,
+} from 'react';
+
+type SidebarContextType = {
+    isExpanded: boolean;
+    isMobileOpen: boolean;
+    isHovered: boolean;
+    activeItem: string | null;
+    openSubmenu: string | null;
+    toggleSidebar: () => void;
+    toggleMobileSidebar: () => void;
+    setIsHovered: (value: boolean) => void;
+    setActiveItem: (item: string | null) => void;
+    toggleSubmenu: (item: string) => void;
+};
+
+const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
+
+type SidebarProviderProps = {
+    children: ReactNode;
+};
+
+export function SidebarProvider({ children }: SidebarProviderProps) {
+    const [isExpanded, setIsExpanded] = useState(true);
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
+    const [activeItem, setActiveItem] = useState<string | null>(null);
+    const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+
+    const toggleSidebar = () => {
+        setIsExpanded((prev) => !prev);
+    };
+
+    const toggleMobileSidebar = () => {
+        setIsMobileOpen((prev) => !prev);
+    };
+
+    const toggleSubmenu = (item: string) => {
+        setOpenSubmenu((prev) => (prev === item ? null : item));
+    };
+
+    return (
+        <SidebarContext.Provider
+            value={{
+                isExpanded,
+                isMobileOpen,
+                isHovered,
+                activeItem,
+                openSubmenu,
+                toggleSidebar,
+                toggleMobileSidebar,
+                setIsHovered,
+                setActiveItem,
+                toggleSubmenu,
+            }}
+        >
+            {children}
+        </SidebarContext.Provider>
+    );
+}
+
+export function useSidebar() {
+    const context = useContext(SidebarContext);
+
+    if (!context) {
+        throw new Error('useSidebar must be used within a SidebarProvider');
+    }
+
+    return context;
+}
