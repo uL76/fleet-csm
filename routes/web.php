@@ -60,12 +60,31 @@ Route::get('/settings', function () {
 
 // Authentication routes
 Route::middleware(['auth'])->prefix('administrator')->name('administrator.')->group(function () {
-    Route::resource('users', UserController::class);
     Route::resource('companies', CompanyController::class);
-    Route::resource('departments', DepartmentController::class);
-    Route::resource('positions', PositionController::class);
-    Route::resource('user-levels', UserLevelController::class);
-    Route::resource('user-config', UserConfigController::class);
+
+    Route::get('/users', function () {
+        return Inertia::render('administrator/users/Index');
+    })->name('users.index');
+
+    Route::get('/user-levels', function () {
+        return Inertia::render('administrator/user-levels/Index');
+    })->name('user-levels.index');
+
+    Route::get('/positions', function () {
+        return Inertia::render('administrator/positions/Index');
+    })->name('positions.index');
+
+    Route::get('/departments', function () {
+        return Inertia::render('administrator/departments/Index');
+    })->name('departments.index');
+
+    Route::get('/user-config', function () {
+        return Inertia::render('administrator/user-config/Index');
+    })->name('user-config.index');
+
+    Route::get('/timezone', function () {
+        return Inertia::render('administrator/timezone/Index');
+    })->name('timezone.index');
 });
 
 require __DIR__.'/settings.php';
