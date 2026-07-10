@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
 import AppHeader from './AppHeader';
 import Backdrop from './Backdrop';
@@ -8,7 +8,7 @@ type AppLayoutProps = {
     children: ReactNode;
 };
 
-function LayoutContent({ children }: AppLayoutProps) {
+const LayoutContent = ({ children }: AppLayoutProps) => {
     const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
     return (
@@ -31,12 +31,14 @@ function LayoutContent({ children }: AppLayoutProps) {
             </div>
         </div>
     );
-}
+};
 
-export default function AppLayout({ children }: AppLayoutProps) {
+const AppLayout = ({ children }: AppLayoutProps) => {
     return (
         <SidebarProvider>
             <LayoutContent>{children}</LayoutContent>
         </SidebarProvider>
     );
-}
+};
+
+export default AppLayout;

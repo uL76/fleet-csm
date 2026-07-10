@@ -1,6 +1,6 @@
 import { useSidebar } from '@/context/SidebarContext';
 
-export default function Backdrop() {
+const Backdrop = () => {
     const { isMobileOpen, toggleMobileSidebar } = useSidebar();
 
     if (!isMobileOpen) {
@@ -8,11 +8,11 @@ export default function Backdrop() {
     }
 
     return (
-        <button
-            type="button"
-            aria-label="Close sidebar"
+        <div
+            className="fixed inset-0 z-40 bg-gray-900/50 lg:hidden"
             onClick={toggleMobileSidebar}
-            className="fixed inset-0 z-30 bg-black/50 lg:hidden"
         />
     );
-}
+};
+
+export default Backdrop;

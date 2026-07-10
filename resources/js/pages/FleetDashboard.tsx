@@ -9,7 +9,7 @@ export default function FleetDashboard() {
                 </h1>
 
                 <p className="mt-2 text-gray-600 dark:text-gray-400">
-                    Laravel 12 + React + TailAdmin + Tailwind berhasil jalan.
+                    Laravel 12 + React + TailAdmin berhasil berjalan.
                 </p>
             </div>
         </AppLayout>

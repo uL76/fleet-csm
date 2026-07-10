@@ -1,9 +1,4 @@
-import {
-    createContext,
-    ReactNode,
-    useContext,
-    useState,
-} from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 type SidebarContextType = {
     isExpanded: boolean;
@@ -13,23 +8,52 @@ type SidebarContextType = {
     openSubmenu: string | null;
     toggleSidebar: () => void;
     toggleMobileSidebar: () => void;
-    setIsHovered: (value: boolean) => void;
+    setIsHovered: (isHovered: boolean) => void;
     setActiveItem: (item: string | null) => void;
     toggleSubmenu: (item: string) => void;
 };
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
+export const useSidebar = () => {
+    const context = useContext(SidebarContext);
+
+    if (!context) {
+        throw new Error('useSidebar must be used within a SidebarProvider');
+    }
+
+    return context;
+};
+
 type SidebarProviderProps = {
     children: ReactNode;
 };
 
-export function SidebarProvider({ children }: SidebarProviderProps) {
+export const SidebarProvider = ({ children }: SidebarProviderProps) => {
     const [isExpanded, setIsExpanded] = useState(true);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [activeItem, setActiveItem] = useState<string | null>(null);
     const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
+
+            if (!mobile) {
+                setIsMobileOpen(false);
+            }
+        };
+
+        handleResize();
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
 
     const toggleSidebar = () => {
         setIsExpanded((prev) => !prev);
@@ -46,7 +70,7 @@ export function SidebarProvider({ children }: SidebarProviderProps) {
     return (
         <SidebarContext.Provider
             value={{
-                isExpanded,
+                isExpanded: isMobile ? false : isExpanded,
                 isMobileOpen,
                 isHovered,
                 activeItem,
@@ -61,14 +85,4 @@ export function SidebarProvider({ children }: SidebarProviderProps) {
             {children}
         </SidebarContext.Provider>
     );
-}
-
-export function useSidebar() {
-    const context = useContext(SidebarContext);
-
-    if (!context) {
-        throw new Error('useSidebar must be used within a SidebarProvider');
-    }
-
-    return context;
-}
+};
