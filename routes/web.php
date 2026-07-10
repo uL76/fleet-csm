@@ -1,13 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use App\Http\Controllers\Administrator\UserController;
 use App\Http\Controllers\Administrator\CompanyController;
 use App\Http\Controllers\Administrator\DepartmentController;
 use App\Http\Controllers\Administrator\PositionController;
-use App\Http\Controllers\Administrator\UserLevelController;
-use App\Http\Controllers\Administrator\UserConfigController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -70,16 +67,19 @@ Route::middleware(['auth'])->prefix('administrator')->name('administrator.')->gr
         return Inertia::render('administrator/user-levels/Index');
     })->name('user-levels.index');
 
-    Route::get('/positions', function () {
-        return Inertia::render('administrator/positions/Index');
-    })->name('positions.index');
+    Route::resource('positions', PositionController::class)->only([
+        'index',
+        'store',
+        'update',
+        'destroy',
+    ]);
 
     Route::resource('departments', DepartmentController::class)->only([
-    'index',
-    'store',
-    'update',
-    'destroy',
-]);
+        'index',
+        'store',
+        'update',
+        'destroy',
+    ]);
 
     Route::get('/user-config', function () {
         return Inertia::render('administrator/user-config/Index');
