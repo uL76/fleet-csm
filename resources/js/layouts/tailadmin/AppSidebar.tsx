@@ -90,6 +90,19 @@ const othersItems: NavItem[] = [
             { name: 'Sign Up', path: '/register', pro: false },
         ],
     },
+    {
+    icon: <UserCircleIcon />,
+    name: 'Administrator',
+    subItems: [
+        { name: 'Users', path: '/administrator/users', pro: false },
+        { name: 'User Level', path: '/administrator/user-levels', pro: false },
+        { name: 'Position', path: '/administrator/positions', pro: false },
+        { name: 'Department', path: '/administrator/departments', pro: false },
+        { name: 'Company', path: '/administrator/companies', pro: false },
+        { name: 'User Config', path: '/administrator/user-config', pro: false },
+        { name: 'Timezone', path: '/administrator/timezone', pro: false },
+    ],
+}
 ];
 
 const AppSidebar = () => {

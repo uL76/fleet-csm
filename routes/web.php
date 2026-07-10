@@ -2,11 +2,18 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\Administrator\UserController;
+use App\Http\Controllers\Administrator\CompanyController;
+use App\Http\Controllers\Administrator\DepartmentController;
+use App\Http\Controllers\Administrator\PositionController;
+use App\Http\Controllers\Administrator\UserLevelController;
+use App\Http\Controllers\Administrator\UserConfigController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
 
+// Dashboard routes
 Route::get('/fleet-dashboard', function () {
     return Inertia::render('dashboard/Index');
 })->name('dashboard');
@@ -50,6 +57,16 @@ Route::get('/users', function () {
 Route::get('/settings', function () {
     return Inertia::render('settings/Index');
 })->name('settings.index');
+
+// Authentication routes
+Route::middleware(['auth'])->prefix('administrator')->name('administrator.')->group(function () {
+    Route::resource('users', UserController::class);
+    Route::resource('companies', CompanyController::class);
+    Route::resource('departments', DepartmentController::class);
+    Route::resource('positions', PositionController::class);
+    Route::resource('user-levels', UserLevelController::class);
+    Route::resource('user-config', UserConfigController::class);
+});
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
