@@ -3,6 +3,7 @@
 use App\Http\Controllers\Administrator\CompanyController;
 use App\Http\Controllers\Administrator\DepartmentController;
 use App\Http\Controllers\Administrator\PositionController;
+use App\Http\Controllers\Administrator\UserLevelController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -63,9 +64,12 @@ Route::middleware(['auth'])->prefix('administrator')->name('administrator.')->gr
         return Inertia::render('administrator/users/Index');
     })->name('users.index');
 
-    Route::get('/user-levels', function () {
-        return Inertia::render('administrator/user-levels/Index');
-    })->name('user-levels.index');
+    Route::resource('user-levels', UserLevelController::class)->only([
+        'index',
+        'store',
+        'update',
+        'destroy',
+    ]);
 
     Route::resource('positions', PositionController::class)->only([
         'index',
