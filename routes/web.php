@@ -74,9 +74,12 @@ Route::middleware(['auth'])->prefix('administrator')->name('administrator.')->gr
         return Inertia::render('administrator/positions/Index');
     })->name('positions.index');
 
-    Route::get('/departments', function () {
-        return Inertia::render('administrator/departments/Index');
-    })->name('departments.index');
+    Route::resource('departments', DepartmentController::class)->only([
+    'index',
+    'store',
+    'update',
+    'destroy',
+]);
 
     Route::get('/user-config', function () {
         return Inertia::render('administrator/user-config/Index');
