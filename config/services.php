@@ -35,4 +35,32 @@ return [
         ],
     ],
 
+    'accurate' => [
+        'base_url' => env(
+            'ACCURATE_BASE_URL',
+            'https://iris.accurate.id/accurate/api'
+        ),
+
+        'token' => env('ACCURATE_API_TOKEN'),
+
+        'signature_secret' => env(
+            'ACCURATE_SIGNATURE_SECRET'
+        ),
+
+        'timezone' => env(
+            'ACCURATE_TIMEZONE',
+            'Asia/Jakarta'
+        ),
+
+        'timeout' => (int) env(
+            'ACCURATE_TIMEOUT',
+            90
+        ),
+
+        'connect_timeout' => (int) env(
+            'ACCURATE_CONNECT_TIMEOUT',
+            20
+        ),
+    ],
+
 ];

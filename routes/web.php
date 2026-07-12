@@ -6,6 +6,7 @@ use App\Http\Controllers\Administrator\PositionController;
 use App\Http\Controllers\Administrator\UserConfigController;
 use App\Http\Controllers\Administrator\UserController;
 use App\Http\Controllers\Administrator\UserLevelController;
+use App\Http\Controllers\Warehouse\WarehouseController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -33,10 +34,6 @@ Route::get('/receive-item', function () {
 Route::get('/item-master', function () {
     return Inertia::render('item-master/Index');
 })->name('item-master.index');
-
-Route::get('/warehouse', function () {
-    return Inertia::render('warehouse/Index');
-})->name('warehouse.index');
 
 Route::get('/accurate-sync', function () {
     return Inertia::render('accurate-sync/Index');
@@ -100,6 +97,22 @@ Route::middleware(['auth'])->prefix('administrator')->name('administrator.')->gr
         return Inertia::render('administrator/timezone/Index');
     })->name('timezone.index');
 });
+
+// Warehouse routes
+Route::middleware(['auth'])
+    ->prefix('warehouse')
+    ->name('warehouse.')
+    ->group(function () {
+        Route::get(
+            'warehouses',
+            [WarehouseController::class, 'index']
+        )->name('warehouses.index');
+
+        Route::post(
+            'warehouses/sync',
+            [WarehouseController::class, 'sync']
+        )->name('warehouses.sync');
+    });
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

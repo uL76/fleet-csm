@@ -6,9 +6,11 @@ use App\Models\Company;
 use App\Models\Department;
 use App\Models\Menu;
 use App\Models\Position;
+use App\Models\User;
 use App\Models\UserLevel;
 use App\Models\UserLevelPermission;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class MasterAdministratorSeeder extends Seeder
 {
@@ -37,7 +39,7 @@ class MasterAdministratorSeeder extends Seeder
             ]
         );
 
-        Position::updateOrCreate(
+        $position = Position::updateOrCreate(
             [
                 'company_id' => $company->id,
                 'department_id' => $department->id,
@@ -91,7 +93,9 @@ class MasterAdministratorSeeder extends Seeder
 
         foreach ($userLevels as $level) {
             UserLevel::updateOrCreate(
-                ['level_code' => $level['level_code']],
+                [
+                    'level_code' => $level['level_code'],
+                ],
                 [
                     'level_name' => $level['level_name'],
                     'level_order' => $level['level_order'],
@@ -100,6 +104,25 @@ class MasterAdministratorSeeder extends Seeder
                 ]
             );
         }
+
+        $superAdminLevel = UserLevel::query()
+            ->where('level_code', 'super-admin')
+            ->firstOrFail();
+
+        User::updateOrCreate(
+            [
+                'email' => 'admin@corpski.co.id',
+            ],
+            [
+                'name' => 'Administrator Fleet CSM',
+                'password' => Hash::make('Aulia123#'),
+                'email_verified_at' => now(),
+                'company_id' => $company->id,
+                'department_id' => $department->id,
+                'position_id' => $position->id,
+                'user_level_id' => $superAdminLevel->id,
+            ]
+        );
 
         $this->seedMenus();
         $this->seedDefaultPermissions();
@@ -210,15 +233,6 @@ class MasterAdministratorSeeder extends Seeder
                 'sort_order' => 200,
             ],
             [
-                'menu_code' => 'warehouse',
-                'menu_name' => 'Warehouse',
-                'menu_group' => 'Warehouse',
-                'route_name' => null,
-                'url' => '/warehouse',
-                'icon' => 'BoxIcon',
-                'sort_order' => 210,
-            ],
-            [
                 'menu_code' => 'approval',
                 'menu_name' => 'Approval',
                 'menu_group' => 'Workflow',
@@ -235,6 +249,15 @@ class MasterAdministratorSeeder extends Seeder
                 'url' => '/reports',
                 'icon' => 'PieChartIcon',
                 'sort_order' => 400,
+            ],
+            [
+                'menu_code' => 'warehouses',
+                'menu_name' => 'Warehouses',
+                'menu_group' => 'Warehouse',
+                'route_name' => 'warehouse.warehouses.index',
+                'url' => '/warehouse/warehouses',
+                'icon' => 'BoxIcon',
+                'sort_order' => 190,
             ],
         ];
 
