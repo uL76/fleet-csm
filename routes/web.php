@@ -3,6 +3,7 @@
 use App\Http\Controllers\Administrator\CompanyController;
 use App\Http\Controllers\Administrator\DepartmentController;
 use App\Http\Controllers\Administrator\PositionController;
+use App\Http\Controllers\Administrator\UserConfigController;
 use App\Http\Controllers\Administrator\UserController;
 use App\Http\Controllers\Administrator\UserLevelController;
 use Illuminate\Support\Facades\Route;
@@ -89,9 +90,11 @@ Route::middleware(['auth'])->prefix('administrator')->name('administrator.')->gr
         'destroy',
     ]);
 
-    Route::get('/user-config', function () {
-        return Inertia::render('administrator/user-config/Index');
-    })->name('user-config.index');
+    Route::get('user-config', [UserConfigController::class, 'index'])
+        ->name('user-config.index');
+
+    Route::put('user-config', [UserConfigController::class, 'update'])
+        ->name('user-config.update');
 
     Route::get('/timezone', function () {
         return Inertia::render('administrator/timezone/Index');
