@@ -7,6 +7,7 @@ use App\Http\Controllers\Administrator\PositionController;
 use App\Http\Controllers\Administrator\UserConfigController;
 use App\Http\Controllers\Administrator\UserController;
 use App\Http\Controllers\Administrator\UserLevelController;
+use App\Http\Controllers\Purchasing\PurchaseOrderController;
 use App\Http\Controllers\Purchasing\VendorController;
 use App\Http\Controllers\Warehouse\ItemMasterController;
 use App\Http\Controllers\Warehouse\WarehouseController;
@@ -166,6 +167,31 @@ Route::middleware(['auth'])
                 'sync',
             ]
         )->name('item-master.sync');
+    });
+
+Route::middleware(['auth'])
+    ->prefix('purchasing')
+    ->name('purchasing.')
+    ->group(function () {
+        Route::get(
+            'purchase-order',
+            [
+                PurchaseOrderController::class,
+                'index',
+            ]
+        )->name(
+            'purchase-order.index'
+        );
+
+        Route::post(
+            'purchase-order/sync',
+            [
+                PurchaseOrderController::class,
+                'sync',
+            ]
+        )->name(
+            'purchase-order.sync'
+        );
     });
 
 require __DIR__.'/settings.php';

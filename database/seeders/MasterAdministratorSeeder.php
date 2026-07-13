@@ -277,6 +277,15 @@ class MasterAdministratorSeeder extends Seeder
                 'icon' => 'CubeIcon',
                 'sort_order' => 20,
             ],
+            [
+                'menu_code' => 'purchase-order',
+                'menu_name' => 'Purchase Order',
+                'menu_group' => 'Purchasing',
+                'route_name' => 'purchasing.purchase-order.index',
+                'url' => '/purchasing/purchase-order',
+                'icon' => 'DocumentTextIcon',
+                'sort_order' => 40,
+            ],
         ];
 
         foreach ($menus as $menu) {

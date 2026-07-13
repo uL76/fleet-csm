@@ -58,7 +58,16 @@ const navItems: NavItem[] = [
         name: 'Dashboard',
         path: '/fleet-dashboard',
     },
-
+    {
+        icon: <BoxCubeIcon />,
+        name: 'Purchase Order',
+        path: '/purchasing/purchase-order',
+    },
+    {
+        icon: <BoxCubeIcon />,
+        name: 'Item Master',
+        path: '/warehouse/item-master',
+    },
     {
         icon: <BoxCubeIcon />,
         name: 'Warehouse',
@@ -68,11 +77,6 @@ const navItems: NavItem[] = [
         icon: <BoxCubeIcon />,
         name: 'Vendor',
         path: '/purchasing/vendor',
-    },
-    {
-        icon: <BoxCubeIcon />,
-        name: 'Item Master',
-        path: '/warehouse/item-master',
     },
 
     /*
