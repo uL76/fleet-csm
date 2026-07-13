@@ -64,6 +64,16 @@ const navItems: NavItem[] = [
         name: 'Warehouse',
         path: '/warehouse/warehouses',
     },
+    {
+        icon: <BoxCubeIcon />,
+        name: 'Vendor',
+        path: '/purchasing/vendor',
+    },
+    {
+        icon: <BoxCubeIcon />,
+        name: 'Item Master',
+        path: '/warehouse/item-master',
+    },
 
     /*
     |--------------------------------------------------------------------------

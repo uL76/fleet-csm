@@ -268,6 +268,15 @@ class MasterAdministratorSeeder extends Seeder
                 'icon' => 'BuildingIcon',
                 'sort_order' => 30,
             ],
+            [
+                'menu_code' => 'item-master',
+                'menu_name' => 'Item Master',
+                'menu_group' => 'Warehouse',
+                'route_name' => 'warehouse.item-master.index',
+                'url' => '/warehouse/item-master',
+                'icon' => 'CubeIcon',
+                'sort_order' => 20,
+            ],
         ];
 
         foreach ($menus as $menu) {

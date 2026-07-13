@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Accurate\ItemMasterTestController;
 use App\Http\Controllers\Administrator\CompanyController;
 use App\Http\Controllers\Administrator\DepartmentController;
 use App\Http\Controllers\Administrator\PositionController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\Administrator\UserConfigController;
 use App\Http\Controllers\Administrator\UserController;
 use App\Http\Controllers\Administrator\UserLevelController;
 use App\Http\Controllers\Purchasing\VendorController;
+use App\Http\Controllers\Warehouse\ItemMasterController;
 use App\Http\Controllers\Warehouse\WarehouseController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -128,6 +130,42 @@ Route::middleware(['auth'])
             'vendor/sync',
             [VendorController::class, 'sync']
         )->name('vendor.sync');
+    });
+
+Route::middleware(['auth'])
+    ->prefix('accurate/item-master/test')
+    ->name('accurate.item-master.test.')
+    ->group(function () {
+        Route::get(
+            'list',
+            [ItemMasterTestController::class, 'testList']
+        )->name('list');
+
+        Route::get(
+            'detail',
+            [ItemMasterTestController::class, 'testDetail']
+        )->name('detail');
+    });
+
+Route::middleware(['auth'])
+    ->prefix('warehouse')
+    ->name('warehouse.')
+    ->group(function () {
+        Route::get(
+            'item-master',
+            [
+                ItemMasterController::class,
+                'index',
+            ]
+        )->name('item-master.index');
+
+        Route::post(
+            'item-master/sync',
+            [
+                ItemMasterController::class,
+                'sync',
+            ]
+        )->name('item-master.sync');
     });
 
 require __DIR__.'/settings.php';
