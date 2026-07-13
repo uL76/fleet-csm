@@ -6,6 +6,7 @@ use App\Http\Controllers\Administrator\PositionController;
 use App\Http\Controllers\Administrator\UserConfigController;
 use App\Http\Controllers\Administrator\UserController;
 use App\Http\Controllers\Administrator\UserLevelController;
+use App\Http\Controllers\Purchasing\VendorController;
 use App\Http\Controllers\Warehouse\WarehouseController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -112,6 +113,21 @@ Route::middleware(['auth'])
             'warehouses/sync',
             [WarehouseController::class, 'sync']
         )->name('warehouses.sync');
+    });
+
+Route::middleware(['auth'])
+    ->prefix('purchasing')
+    ->name('purchasing.')
+    ->group(function () {
+        Route::get(
+            'vendor',
+            [VendorController::class, 'index']
+        )->name('vendor.index');
+
+        Route::post(
+            'vendor/sync',
+            [VendorController::class, 'sync']
+        )->name('vendor.sync');
     });
 
 require __DIR__.'/settings.php';
