@@ -2,413 +2,165 @@
 
 namespace App\Services\Accurate;
 
+use App\Models\AccurateSyncRun;
 use App\Models\ItemMaster;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
-use Throwable;
 
 class ItemMasterSyncService
 {
-    private const PAGE_SIZE = 100;
-
-    private const MAX_RECORDED_ERRORS = 20;
-
-    private const MAX_ERROR_LENGTH = 5000;
-
     public function __construct(
         private readonly AccurateClient $client
     ) {}
 
     /**
-     * Sinkronisasi seluruh Item Master dari Accurate.
-     *
-     * Mapping utama:
-     * - id          -> accurate_id
-     * - no          -> item_code
-     * - charField1  -> part_number
-     * - name        -> item_description
-     * - unit1.name  -> unit_name
-     * - suspended   -> kebalikan is_active
+     * Memproses satu halaman daftar item Accurate.
      */
-    public function sync(
-        ?int $userId = null
+    public function syncPage(
+        AccurateSyncRun $syncRun,
+        int $page
     ): array {
-        /*
-         * Sinkronisasi detail dilakukan satu per satu.
-         * Ini membantu proses local development agar tidak berhenti
-         * karena batas execution time PHP.
-         *
-         * Untuk production dengan jumlah item sangat banyak,
-         * sebaiknya dipindahkan ke Laravel Queue.
-         */
-        if (function_exists('set_time_limit')) {
-            @set_time_limit(0);
-        }
+        $responseData = $this->fetchItemPage(
+            $page,
+            $syncRun->page_size
+        );
 
-        $listItems = $this->fetchAllItemList();
-
-        if ($listItems === []) {
-            throw new RuntimeException(
-                'Data item dari Accurate kosong.'
-            );
-        }
-
-        $inserted = 0;
-        $updated = 0;
-        $skipped = 0;
-        $failed = 0;
-
-        $accurateIds = [];
-        $errors = [];
+        $items = $responseData['items'];
+        $totalPages = $responseData['total_pages'];
+        $totalItems = $responseData['total_items'];
 
         $syncTime = now();
 
-        foreach ($listItems as $listItem) {
-            if (! is_array($listItem)) {
+        $rows = [];
+        $skipped = 0;
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
                 $skipped++;
 
                 continue;
             }
 
-            $accurateId = $this->nullableString(
-                data_get($listItem, 'id')
+            $mapped = $this->mapListItem(
+                $item,
+                $syncRun,
+                $syncTime
             );
 
-            $itemCode = $this->nullableString(
-                data_get($listItem, 'no')
-            );
-
-            if (
-                $accurateId === null
-                || $itemCode === null
-            ) {
+            if ($mapped === null) {
                 $skipped++;
-
-                $this->appendError(
-                    $errors,
-                    [
-                        'accurate_id' => $accurateId,
-                        'item_code' => $itemCode,
-                        'message' => 'Item dilewati karena Accurate ID atau Item Code kosong.',
-                    ]
-                );
 
                 continue;
             }
 
-            try {
-                $detail = $this->fetchItemDetail(
-                    $accurateId,
-                    $itemCode
-                );
-
-                $mapped = $this->mapItem(
-                    $detail,
-                    $syncTime,
-                    $userId
-                );
-
-                if ($mapped === null) {
-                    $skipped++;
-
-                    $this->appendError(
-                        $errors,
-                        [
-                            'accurate_id' => $accurateId,
-                            'item_code' => $itemCode,
-                            'message' => 'Item dilewati karena hasil mapping tidak lengkap.',
-                        ]
-                    );
-
-                    continue;
-                }
-
-                /*
-                 * Accurate ID hanya dicatat setelah detail berhasil
-                 * diambil dan mapping berhasil.
-                 */
-                $accurateIds[] =
-                    $mapped['accurate_id'];
-
-                DB::transaction(
-                    function () use (
-                        $mapped,
-                        &$inserted,
-                        &$updated
-                    ): void {
-                        $existing = ItemMaster::query()
-                            ->where(
-                                'accurate_id',
-                                $mapped['accurate_id']
-                            )
-                            ->orWhere(
-                                'item_code',
-                                $mapped['item_code']
-                            )
-                            ->first();
-
-                        if ($existing) {
-                            $updateData = $mapped;
-
-                            /*
-                             * Jangan mengubah created_by ketika record
-                             * yang sudah ada diperbarui.
-                             */
-                            unset(
-                                $updateData['created_by']
-                            );
-
-                            $existing->update(
-                                $updateData
-                            );
-
-                            $updated++;
-
-                            return;
-                        }
-
-                        ItemMaster::create(
-                            $mapped
-                        );
-
-                        $inserted++;
-                    }
-                );
-            } catch (Throwable $exception) {
-                report($exception);
-
-                $failed++;
-
-                $message = $this->limitErrorMessage(
-                    $exception->getMessage()
-                );
-
-                $this->appendError(
-                    $errors,
-                    [
-                        'accurate_id' => $accurateId,
-                        'item_code' => $itemCode,
-                        'message' => $message,
-                    ]
-                );
-
-                /*
-                 * Pencatatan error dibuat terpisah.
-                 * Jika proses penyimpanan error juga gagal,
-                 * sinkronisasi item berikutnya tetap berjalan.
-                 */
-                $this->recordItemSyncError(
-                    $accurateId,
-                    $itemCode,
-                    $message,
-                    $syncTime,
-                    $userId
-                );
-            }
+            $rows[] = $mapped;
         }
 
         $accurateIds = array_values(
             array_unique(
-                array_filter(
-                    $accurateIds,
-                    static fn (
-                        mixed $value
-                    ): bool => is_string($value)
-                        && $value !== ''
+                array_column(
+                    $rows,
+                    'accurate_id'
                 )
             )
         );
 
-        $inactivated = $this->inactivateMissingItems(
-            $accurateIds,
-            $syncTime,
-            $userId
+        $existingIds = [];
+
+        if ($accurateIds !== []) {
+            $existingIds = DB::table('item_masters')
+                ->whereIn(
+                    'accurate_id',
+                    $accurateIds
+                )
+                ->pluck('accurate_id')
+                ->map(
+                    static fn (mixed $value): string => (string) $value
+                )
+                ->all();
+        }
+
+        $existingLookup = array_fill_keys(
+            $existingIds,
+            true
         );
 
-        return [
-            'total_accurate' => count($listItems),
+        $inserted = 0;
+        $updated = 0;
 
+        foreach ($accurateIds as $accurateId) {
+            if (isset($existingLookup[$accurateId])) {
+                $updated++;
+            } else {
+                $inserted++;
+            }
+        }
+
+        if ($rows !== []) {
+            ItemMaster::query()->upsert(
+                $rows,
+                ['accurate_id'],
+                [
+                    'item_code',
+                    'part_number',
+                    'item_description',
+                    'unit_name',
+                    'is_active',
+                    'accurate_raw',
+                    'sync_error',
+                    'last_sync_at',
+                    'last_seen_sync_id',
+                    'last_seen_at',
+                    'updated_by',
+                    'updated_at',
+                ]
+            );
+        }
+
+        return [
+            'page' => $page,
+            'total_pages' => $totalPages,
+            'total_items' => $totalItems,
+            'page_item_count' => count($items),
+            'processed' => count($rows),
             'inserted' => $inserted,
             'updated' => $updated,
             'skipped' => $skipped,
-            'failed' => $failed,
-            'inactivated' => $inactivated,
-
-            'synced_at' => $syncTime->format(
-                'Y-m-d H:i:s'
-            ),
-
-            'errors' => array_slice(
-                $errors,
-                0,
-                self::MAX_RECORDED_ERRORS
-            ),
         ];
     }
 
     /**
-     * Mengambil seluruh daftar Item Accurate dengan pagination.
-     */
-    private function fetchAllItemList(): array
-    {
-        $page = 1;
-        $pageCount = 1;
-        $allItems = [];
-
-        do {
-            $response = $this->client->get(
-                'item/list.do',
-                [
-                    'fields' => implode(',', [
-                        'id',
-                        'no',
-                        'name',
-                        'suspended',
-                    ]),
-
-                    'sp.pageSize' => self::PAGE_SIZE,
-
-                    'sp.page' => $page,
-                ]
-            );
-
-            if (! $response->successful()) {
-                throw new RuntimeException(
-                    sprintf(
-                        'Gagal mengambil daftar item Accurate pada halaman %d. HTTP %s.',
-                        $page,
-                        $response->status()
-                    )
-                );
-            }
-
-            $json = $response->json();
-
-            if (! is_array($json)) {
-                throw new RuntimeException(
-                    sprintf(
-                        'Response daftar item Accurate halaman %d bukan JSON yang valid.',
-                        $page
-                    )
-                );
-            }
-
-            if (
-                data_get($json, 's')
-                !== true
-            ) {
-                throw new RuntimeException(
-                    sprintf(
-                        'Daftar item Accurate halaman %d gagal: %s',
-                        $page,
-                        $this->extractErrorMessage(
-                            $json
-                        )
-                    )
-                );
-            }
-
-            $pageItems = data_get(
-                $json,
-                'd',
-                []
-            );
-
-            if (! is_array($pageItems)) {
-                throw new RuntimeException(
-                    sprintf(
-                        'Data daftar item Accurate halaman %d memiliki format tidak valid.',
-                        $page
-                    )
-                );
-            }
-
-            foreach ($pageItems as $item) {
-                if (is_array($item)) {
-                    $allItems[] = $item;
-                }
-            }
-
-            $pageCount = max(
-                1,
-                (int) data_get(
-                    $json,
-                    'sp.pageCount',
-                    1
-                )
-            );
-
-            $page++;
-        } while ($page <= $pageCount);
-
-        return $allItems;
-    }
-
-    /**
-     * Mengambil detail item.
+     * Mengambil satu halaman item/list.do.
      *
-     * Prioritas pertama menggunakan ID.
-     * Jika gagal, lakukan fallback menggunakan nomor item.
+     * Untuk field master dasar, detail.do tidak lagi dipanggil.
      */
-    private function fetchItemDetail(
-        string $accurateId,
-        string $itemCode
-    ): array {
-        try {
-            return $this->requestItemDetail(
-                [
-                    'id' => $accurateId,
-                ],
-                $itemCode
-            );
-        } catch (Throwable $idException) {
-            report($idException);
-
-            try {
-                return $this->requestItemDetail(
-                    [
-                        'no' => $itemCode,
-                    ],
-                    $itemCode
-                );
-            } catch (Throwable $numberException) {
-                throw new RuntimeException(
-                    sprintf(
-                        'Gagal mengambil detail item %s menggunakan ID maupun nomor item. ID error: %s | No error: %s',
-                        $itemCode,
-                        $this->limitErrorMessage(
-                            $idException->getMessage(),
-                            1000
-                        ),
-                        $this->limitErrorMessage(
-                            $numberException->getMessage(),
-                            1000
-                        )
-                    ),
-                    previous: $numberException
-                );
-            }
-        }
-    }
-
-    /**
-     * Menjalankan request detail Item Accurate.
-     */
-    private function requestItemDetail(
-        array $parameters,
-        string $itemCode
+    private function fetchItemPage(
+        int $page,
+        int $pageSize
     ): array {
         $response = $this->client->get(
-            'item/detail.do',
-            $parameters
+            'item/list.do',
+            [
+                'fields' => implode(',', [
+                    'id',
+                    'no',
+                    'name',
+                    'charField1',
+                    'unit1Name',
+                    'suspended',
+                ]),
+
+                'sp.pageSize' => $pageSize,
+                'sp.page' => $page,
+            ]
         );
 
         if (! $response->successful()) {
             throw new RuntimeException(
                 sprintf(
-                    'Gagal mengambil detail item %s. HTTP %s.',
-                    $itemCode,
+                    'Gagal mengambil daftar item Accurate halaman %d. HTTP %s.',
+                    $page,
                     $response->status()
                 )
             );
@@ -419,51 +171,77 @@ class ItemMasterSyncService
         if (! is_array($json)) {
             throw new RuntimeException(
                 sprintf(
-                    'Response detail item %s bukan JSON yang valid.',
-                    $itemCode
+                    'Response item Accurate halaman %d bukan JSON valid.',
+                    $page
                 )
             );
         }
 
-        if (
-            data_get($json, 's')
-            !== true
-        ) {
+        if (data_get($json, 's') !== true) {
             throw new RuntimeException(
                 sprintf(
-                    'Detail item %s gagal: %s',
-                    $itemCode,
-                    $this->extractErrorMessage(
-                        $json
-                    )
+                    'Accurate menolak daftar item halaman %d: %s',
+                    $page,
+                    $this->extractErrorMessage($json)
                 )
             );
         }
 
-        $detail = data_get(
+        $items = data_get(
             $json,
-            'd'
+            'd',
+            []
         );
 
-        if (! is_array($detail)) {
+        if (! is_array($items)) {
             throw new RuntimeException(
                 sprintf(
-                    'Detail item %s kosong atau memiliki format tidak valid.',
-                    $itemCode
+                    'Data item Accurate halaman %d memiliki format tidak valid.',
+                    $page
                 )
             );
         }
 
-        return $detail;
+        $totalPages = max(
+            1,
+            (int) data_get(
+                $json,
+                'sp.pageCount',
+                1
+            )
+        );
+
+        /*
+         * Beberapa response Accurate menggunakan rowCount.
+         * Jika tidak tersedia, estimasi menggunakan page count.
+         */
+        $totalItems = (int) data_get(
+            $json,
+            'sp.rowCount',
+            0
+        );
+
+        if ($totalItems <= 0) {
+            $totalItems = $totalPages * $pageSize;
+
+            if ($page === $totalPages) {
+                $totalItems =
+                    (($totalPages - 1) * $pageSize)
+                    + count($items);
+            }
+        }
+
+        return [
+            'items' => $items,
+            'total_pages' => $totalPages,
+            'total_items' => $totalItems,
+        ];
     }
 
-    /**
-     * Mapping response detail Accurate ke tabel item_masters.
-     */
-    private function mapItem(
+    private function mapListItem(
         array $item,
-        Carbon $syncTime,
-        ?int $userId
+        AccurateSyncRun $syncRun,
+        Carbon $syncTime
     ): ?array {
         $accurateId = $this->nullableString(
             data_get($item, 'id')
@@ -491,7 +269,6 @@ class ItemMasterSyncService
 
         return [
             'accurate_id' => $accurateId,
-
             'item_code' => $itemCode,
 
             'part_number' => $this->nullableString(
@@ -508,65 +285,61 @@ class ItemMasterSyncService
                 )
             ),
 
-            'unit_name' => $this->resolveUnitName(
+            'unit_name' => $this->resolveListUnitName(
                 $item
             ),
 
             'is_active' => ! $suspended,
 
-            'accurate_raw' => $item,
+            /*
+             * upsert tidak menjalankan cast model.
+             * Array harus diubah menjadi JSON manual.
+             */
+            'accurate_raw' => $this->encodeRawData(
+                $item
+            ),
 
             'sync_error' => null,
 
             'last_sync_at' => $syncTime,
+            'last_seen_sync_id' => $syncRun->id,
+            'last_seen_at' => $syncTime,
 
-            'created_by' => $userId,
+            'created_by' => $syncRun->created_by,
+            'updated_by' => $syncRun->created_by,
 
-            'updated_by' => $userId,
+            'created_at' => $syncTime,
+            'updated_at' => $syncTime,
         ];
     }
 
-    /**
-     * Mencari UOM dari beberapa kemungkinan field.
-     */
-    private function resolveUnitName(
+    private function resolveListUnitName(
         array $item
     ): ?string {
         $candidates = [
-            data_get(
-                $item,
-                'unit1.name'
-            ),
-
-            data_get(
-                $item,
-                'unit1Name'
-            ),
-
-            data_get(
-                $item,
-                'vendorUnit.name'
-            ),
-
-            data_get(
-                $item,
-                'vendorUnitName'
-            ),
-
-            data_get(
-                $item,
-                'detailSellingPrice.0.unit.name'
-            ),
+            data_get($item, 'unit1Name'),
+            data_get($item, 'unit1.name'),
+            data_get($item, 'unitName'),
+            data_get($item, 'unit.name'),
         ];
 
         foreach ($candidates as $candidate) {
-            $unitName =
-                $this->nullableString(
-                    $candidate
-                );
+            /*
+             * Kadang Accurate bisa mengirim object/array.
+             */
+            if (is_array($candidate)) {
+                $candidate =
+                    data_get($candidate, 'name')
+                    ?? data_get($candidate, 'value')
+                    ?? null;
+            }
 
-            if ($unitName !== null) {
-                return $unitName;
+            $value = $this->nullableString(
+                $candidate
+            );
+
+            if ($value !== null) {
+                return $value;
             }
         }
 
@@ -574,39 +347,26 @@ class ItemMasterSyncService
     }
 
     /**
-     * Menonaktifkan item lokal yang tidak lagi ditemukan
-     * pada hasil sinkronisasi Accurate.
+     * Hanya dipanggil setelah seluruh halaman berhasil.
      */
-    private function inactivateMissingItems(
-        array $accurateIds,
-        Carbon $syncTime,
-        ?int $userId
+    public function finishSync(
+        AccurateSyncRun $syncRun
     ): int {
-        /*
-         * Jangan melakukan inaktivasi jika tidak ada satu pun
-         * item detail yang berhasil diproses.
-         *
-         * Ini mencegah semua item lokal salah dinonaktifkan
-         * ketika Accurate sedang mengalami gangguan.
-         */
-        if ($accurateIds === []) {
-            return 0;
-        }
-
         return ItemMaster::query()
             ->where(
-                'accurate_id',
-                '!=',
-                null
-            )
-            ->where(
-                'accurate_id',
-                '<>',
-                ''
-            )
-            ->whereNotIn(
-                'accurate_id',
-                $accurateIds
+                function ($query) use (
+                    $syncRun
+                ): void {
+                    $query
+                        ->whereNull(
+                            'last_seen_sync_id'
+                        )
+                        ->orWhere(
+                            'last_seen_sync_id',
+                            '<>',
+                            $syncRun->id
+                        );
+                }
             )
             ->where(
                 'is_active',
@@ -614,83 +374,11 @@ class ItemMasterSyncService
             )
             ->update([
                 'is_active' => false,
-
-                'updated_by' => $userId,
-
-                'last_sync_at' => $syncTime,
-
-                'updated_at' => $syncTime,
+                'updated_by' => $syncRun->created_by,
+                'updated_at' => now(),
             ]);
     }
 
-    /**
-     * Menyimpan error sinkronisasi pada item yang sudah ada.
-     */
-    private function recordItemSyncError(
-        string $accurateId,
-        string $itemCode,
-        string $message,
-        Carbon $syncTime,
-        ?int $userId
-    ): void {
-        try {
-            ItemMaster::query()
-                ->where(
-                    function ($query) use (
-                        $accurateId,
-                        $itemCode
-                    ): void {
-                        $query
-                            ->where(
-                                'accurate_id',
-                                $accurateId
-                            )
-                            ->orWhere(
-                                'item_code',
-                                $itemCode
-                            );
-                    }
-                )
-                ->update([
-                    'sync_error' => $this->limitErrorMessage(
-                        $message
-                    ),
-
-                    'last_sync_at' => $syncTime,
-
-                    'updated_by' => $userId,
-
-                    'updated_at' => $syncTime,
-                ]);
-        } catch (Throwable $loggingException) {
-            /*
-             * Error logging tidak boleh menghentikan
-             * proses sinkronisasi item berikutnya.
-             */
-            report($loggingException);
-        }
-    }
-
-    /**
-     * Menambahkan error ke daftar hasil dengan batas maksimal.
-     */
-    private function appendError(
-        array &$errors,
-        array $error
-    ): void {
-        if (
-            count($errors)
-            >= self::MAX_RECORDED_ERRORS
-        ) {
-            return;
-        }
-
-        $errors[] = $error;
-    }
-
-    /**
-     * Mengubah nilai menjadi string nullable yang bersih.
-     */
     private function nullableString(
         mixed $value
     ): ?string {
@@ -710,52 +398,28 @@ class ItemMasterSyncService
             : null;
     }
 
-    /**
-     * Membatasi panjang pesan error agar aman disimpan.
-     */
-    private function limitErrorMessage(
-        string $message,
-        int $length = self::MAX_ERROR_LENGTH
+    private function encodeRawData(
+        array $data
     ): string {
-        $message = trim($message);
-
-        if ($message === '') {
-            return 'Terjadi kesalahan yang tidak diketahui.';
-        }
-
-        return mb_substr(
-            $message,
-            0,
-            $length
+        $encoded = json_encode(
+            $data,
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+            | JSON_INVALID_UTF8_SUBSTITUTE
+            | JSON_THROW_ON_ERROR
         );
+
+        return $encoded;
     }
 
-    /**
-     * Mengambil pesan error dari response Accurate.
-     */
     private function extractErrorMessage(
         array $response
     ): string {
         $candidates = [
-            data_get(
-                $response,
-                'message'
-            ),
-
-            data_get(
-                $response,
-                'error'
-            ),
-
-            data_get(
-                $response,
-                'd'
-            ),
-
-            data_get(
-                $response,
-                'errors'
-            ),
+            data_get($response, 'message'),
+            data_get($response, 'error'),
+            data_get($response, 'errors'),
+            data_get($response, 'd'),
         ];
 
         foreach ($candidates as $candidate) {
@@ -775,6 +439,6 @@ class ItemMasterSyncService
             }
         }
 
-        return 'Accurate mengembalikan response gagal tanpa pesan error.';
+        return 'Accurate mengembalikan response gagal tanpa pesan.';
     }
 }

@@ -10,6 +10,7 @@ use App\Http\Controllers\Administrator\UserLevelController;
 use App\Http\Controllers\Purchasing\PurchaseOrderController;
 use App\Http\Controllers\Purchasing\VendorController;
 use App\Http\Controllers\Warehouse\ItemMasterController;
+use App\Http\Controllers\Warehouse\ItemMasterImportController;
 use App\Http\Controllers\Warehouse\WarehouseController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -34,10 +35,6 @@ Route::get('/purchase-order', function () {
 Route::get('/receive-item', function () {
     return Inertia::render('receive-item/Index');
 })->name('receive-item.index');
-
-Route::get('/item-master', function () {
-    return Inertia::render('item-master/Index');
-})->name('item-master.index');
 
 Route::get('/accurate-sync', function () {
     return Inertia::render('accurate-sync/Index');
@@ -161,12 +158,44 @@ Route::middleware(['auth'])
         )->name('item-master.index');
 
         Route::post(
-            'item-master/sync',
+            'item-master/sync/start',
             [
                 ItemMasterController::class,
-                'sync',
+                'startSync',
             ]
-        )->name('item-master.sync');
+        )->name('item-master.sync.start');
+
+        Route::get(
+            'item-master/sync/{syncRun}/progress',
+            [
+                ItemMasterController::class,
+                'syncProgress',
+            ]
+        )->name('item-master.sync.progress');
+
+        Route::post(
+            'item-master/import',
+            [
+                ItemMasterImportController::class,
+                'store',
+            ]
+        )->name('item-master.import.store');
+
+        Route::get(
+            'item-master/import/{importRun}/progress',
+            [
+                ItemMasterImportController::class,
+                'progress',
+            ]
+        )->name('item-master.import.progress');
+
+        Route::post(
+            'item-master/sync/{syncRun}/retry',
+            [
+                ItemMasterController::class,
+                'retrySync',
+            ]
+        )->name('item-master.sync.retry');
     });
 
 Route::middleware(['auth'])
