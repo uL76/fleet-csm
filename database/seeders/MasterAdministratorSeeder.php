@@ -16,8 +16,25 @@ class MasterAdministratorSeeder extends Seeder
 {
     public function run(): void
     {
-        $company = Company::updateOrCreate(
-            ['company_code' => 'csm'],
+        $company = $this->seedCompany();
+
+        $userLevels = $this->seedUserLevels();
+
+        $this->seedDefaultAdminUser($company, $userLevels);
+
+        $this->seedEmployees($company, $userLevels);
+
+        $this->seedMenus();
+
+        $this->seedDefaultPermissions();
+    }
+
+    private function seedCompany(): Company
+    {
+        return Company::updateOrCreate(
+            [
+                'company_code' => 'csm',
+            ],
             [
                 'company_name' => 'PT. Cipta Semangat Maju',
                 'email' => 'corporate@ciptasemangatmaju.com',
@@ -26,33 +43,11 @@ class MasterAdministratorSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+    }
 
-        $department = Department::updateOrCreate(
-            [
-                'company_id' => $company->id,
-                'department_code' => 'ict',
-            ],
-            [
-                'department_name' => 'ICT',
-                'description' => 'ICT',
-                'is_active' => true,
-            ]
-        );
-
-        $position = Position::updateOrCreate(
-            [
-                'company_id' => $company->id,
-                'department_id' => $department->id,
-                'position_code' => 'staff-it',
-            ],
-            [
-                'position_name' => 'Staff IT',
-                'description' => 'Staff IT',
-                'is_active' => true,
-            ]
-        );
-
-        $userLevels = [
+    private function seedUserLevels(): array
+    {
+        $levels = [
             [
                 'level_code' => 'super-admin',
                 'level_name' => 'Super Admin',
@@ -91,8 +86,10 @@ class MasterAdministratorSeeder extends Seeder
             ],
         ];
 
-        foreach ($userLevels as $level) {
-            UserLevel::updateOrCreate(
+        $createdLevels = [];
+
+        foreach ($levels as $level) {
+            $createdLevels[$level['level_code']] = UserLevel::updateOrCreate(
                 [
                     'level_code' => $level['level_code'],
                 ],
@@ -105,9 +102,23 @@ class MasterAdministratorSeeder extends Seeder
             );
         }
 
-        $superAdminLevel = UserLevel::query()
-            ->where('level_code', 'super-admin')
-            ->firstOrFail();
+        return $createdLevels;
+    }
+
+    private function seedDefaultAdminUser(Company $company, array $userLevels): void
+    {
+        $department = $this->firstOrCreateDepartment(
+            $company,
+            'ict',
+            'ICT'
+        );
+
+        $position = $this->firstOrCreatePosition(
+            $company,
+            $department,
+            'staff-it',
+            'Staff IT'
+        );
 
         User::updateOrCreate(
             [
@@ -120,12 +131,181 @@ class MasterAdministratorSeeder extends Seeder
                 'company_id' => $company->id,
                 'department_id' => $department->id,
                 'position_id' => $position->id,
-                'user_level_id' => $superAdminLevel->id,
+                'user_level_id' => $userLevels['super-admin']->id,
+                'employee_id' => null,
+                'phone' => null,
+                'status' => 'active',
             ]
         );
+    }
 
-        $this->seedMenus();
-        $this->seedDefaultPermissions();
+    private function seedEmployees(Company $company, array $userLevels): void
+    {
+        $employees = [
+            [
+                'name' => 'Yuli',
+                'department' => 'Finance',
+                'position' => 'Finance',
+                'level' => 'staff',
+            ],
+            [
+                'name' => 'Jesen Erlando',
+                'department' => 'Management',
+                'position' => 'Direktur',
+                'level' => 'manager',
+            ],
+            [
+                'name' => 'Bayu Trisna',
+                'department' => 'Operation',
+                'position' => 'Driver',
+                'level' => 'staff',
+            ],
+            [
+                'name' => 'Johni Setiawan',
+                'department' => 'Sales',
+                'position' => 'Sales',
+                'level' => 'staff',
+            ],
+            [
+                'name' => 'Novindah',
+                'department' => 'Purchasing',
+                'position' => 'Staff Purchasing',
+                'level' => 'staff',
+            ],
+            [
+                'name' => 'Ficky Leonardo',
+                'department' => 'Warehouse',
+                'position' => 'Staff Warehouse',
+                'level' => 'staff',
+            ],
+            [
+                'name' => 'Danil',
+                'department' => 'Warehouse',
+                'position' => 'Staff Warehouse',
+                'level' => 'staff',
+            ],
+            [
+                'name' => 'Ebieta Alya Chasanah',
+                'department' => 'Accounting',
+                'position' => 'Staff Accounting',
+                'level' => 'staff',
+            ],
+            [
+                'name' => 'Kerin Ovanda',
+                'department' => 'Finance',
+                'position' => 'Staff Invoicing',
+                'level' => 'staff',
+            ],
+            [
+                'name' => 'Alek Sandria',
+                'department' => 'Warehouse',
+                'position' => 'Staff Warehouse',
+                'level' => 'staff',
+            ],
+            [
+                'name' => 'David Novelainder',
+                'department' => 'Operation',
+                'position' => 'Kurir',
+                'level' => 'staff',
+            ],
+            [
+                'name' => 'Vidhiya Addini',
+                'department' => 'Warehouse',
+                'position' => 'Inventory Control Staff',
+                'level' => 'staff',
+            ],
+        ];
+
+        foreach ($employees as $employee) {
+            $firstWord = $this->getFirstWord($employee['name']);
+            $email = strtolower($firstWord).'@ciptasemangatmaju.com';
+            $password = ucfirst(strtolower($firstWord)).'123';
+
+            $department = $this->firstOrCreateDepartment(
+                $company,
+                $this->makeCode($employee['department']),
+                $employee['department']
+            );
+
+            $position = $this->firstOrCreatePosition(
+                $company,
+                $department,
+                $this->makeCode($employee['position']),
+                $employee['position']
+            );
+
+            User::updateOrCreate(
+                [
+                    'email' => $email,
+                ],
+                [
+                    'name' => $employee['name'],
+                    'password' => Hash::make($password),
+                    'email_verified_at' => now(),
+                    'company_id' => $company->id,
+                    'department_id' => $department->id,
+                    'position_id' => $position->id,
+                    'user_level_id' => $userLevels[$employee['level']]->id,
+                    'employee_id' => null,
+                    'phone' => null,
+                    'status' => 'active',
+                ]
+            );
+        }
+    }
+
+    private function firstOrCreateDepartment(
+        Company $company,
+        string $departmentCode,
+        string $departmentName
+    ): Department {
+        return Department::updateOrCreate(
+            [
+                'company_id' => $company->id,
+                'department_code' => $departmentCode,
+            ],
+            [
+                'department_name' => $departmentName,
+                'description' => $departmentName,
+                'is_active' => true,
+            ]
+        );
+    }
+
+    private function firstOrCreatePosition(
+        Company $company,
+        Department $department,
+        string $positionCode,
+        string $positionName
+    ): Position {
+        return Position::updateOrCreate(
+            [
+                'company_id' => $company->id,
+                'department_id' => $department->id,
+                'position_code' => $positionCode,
+            ],
+            [
+                'position_name' => $positionName,
+                'description' => $positionName,
+                'is_active' => true,
+            ]
+        );
+    }
+
+    private function getFirstWord(string $name): string
+    {
+        $parts = preg_split('/\s+/', trim($name));
+
+        return $parts[0] ?? $name;
+    }
+
+    private function makeCode(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = preg_replace('/[^a-z0-9]+/', '-', $value);
+        $value = trim($value, '-');
+
+        return $value ?: 'unknown';
     }
 
     private function seedMenus(): void
@@ -197,85 +377,13 @@ class MasterAdministratorSeeder extends Seeder
             ],
 
             [
-                'menu_code' => 'material-request',
-                'menu_name' => 'Material Request',
-                'menu_group' => 'SCM',
-                'route_name' => null,
-                'url' => '/scm/material-request',
+                'menu_code' => 'purchase-requisition',
+                'menu_name' => 'Purchase Requisition',
+                'menu_group' => 'Purchasing',
+                'route_name' => 'purchasing.purchase-requisition.index',
+                'url' => '/purchasing/purchase-requisition',
                 'icon' => 'FileIcon',
                 'sort_order' => 100,
-            ],
-            [
-                'menu_code' => 'purchase-order',
-                'menu_name' => 'Purchase Order',
-                'menu_group' => 'SCM',
-                'route_name' => null,
-                'url' => '/scm/purchase-order',
-                'icon' => 'FileIcon',
-                'sort_order' => 110,
-            ],
-            [
-                'menu_code' => 'receive-item',
-                'menu_name' => 'Receive Item',
-                'menu_group' => 'SCM',
-                'route_name' => null,
-                'url' => '/scm/receive-item',
-                'icon' => 'BoxIcon',
-                'sort_order' => 120,
-            ],
-            [
-                'menu_code' => 'item-master',
-                'menu_name' => 'Item Master',
-                'menu_group' => 'Warehouse',
-                'route_name' => null,
-                'url' => '/warehouse/item-master',
-                'icon' => 'BoxIcon',
-                'sort_order' => 200,
-            ],
-            [
-                'menu_code' => 'approval',
-                'menu_name' => 'Approval',
-                'menu_group' => 'Workflow',
-                'route_name' => null,
-                'url' => '/workflow/approval',
-                'icon' => 'CheckCircleIcon',
-                'sort_order' => 300,
-            ],
-            [
-                'menu_code' => 'reports',
-                'menu_name' => 'Reports',
-                'menu_group' => 'Reports',
-                'route_name' => null,
-                'url' => '/reports',
-                'icon' => 'PieChartIcon',
-                'sort_order' => 400,
-            ],
-            [
-                'menu_code' => 'warehouses',
-                'menu_name' => 'Warehouses',
-                'menu_group' => 'Warehouse',
-                'route_name' => 'warehouse.warehouses.index',
-                'url' => '/warehouse/warehouses',
-                'icon' => 'BoxIcon',
-                'sort_order' => 190,
-            ],
-            [
-                'menu_code' => 'vendor',
-                'menu_name' => 'Vendor',
-                'menu_group' => 'SCM',
-                'route_name' => 'purchasing.vendor.index',
-                'url' => '/purchasing/vendor',
-                'icon' => 'BuildingIcon',
-                'sort_order' => 30,
-            ],
-            [
-                'menu_code' => 'item-master',
-                'menu_name' => 'Item Master',
-                'menu_group' => 'Warehouse',
-                'route_name' => 'warehouse.item-master.index',
-                'url' => '/warehouse/item-master',
-                'icon' => 'CubeIcon',
-                'sort_order' => 20,
             ],
             [
                 'menu_code' => 'purchase-order',
@@ -284,21 +392,82 @@ class MasterAdministratorSeeder extends Seeder
                 'route_name' => 'purchasing.purchase-order.index',
                 'url' => '/purchasing/purchase-order',
                 'icon' => 'DocumentTextIcon',
-                'sort_order' => 40,
+                'sort_order' => 110,
             ],
             [
-                'name' => 'Purchase Requisition',
-                'route' => 'purchasing.purchase-requisition.index',
-                'icon' => 'FileText',
-                'parent' => 'Purchasing',
-                'order' => 20,
-                'is_active' => true,
+                'menu_code' => 'vendor',
+                'menu_name' => 'Vendor',
+                'menu_group' => 'Purchasing',
+                'route_name' => 'purchasing.vendor.index',
+                'url' => '/purchasing/vendor',
+                'icon' => 'BuildingIcon',
+                'sort_order' => 120,
+            ],
+
+            [
+                'menu_code' => 'material-request',
+                'menu_name' => 'Material Request',
+                'menu_group' => 'SCM',
+                'route_name' => null,
+                'url' => '/scm/material-request',
+                'icon' => 'FileIcon',
+                'sort_order' => 200,
+            ],
+            [
+                'menu_code' => 'receive-item',
+                'menu_name' => 'Receive Item',
+                'menu_group' => 'SCM',
+                'route_name' => null,
+                'url' => '/scm/receive-item',
+                'icon' => 'BoxIcon',
+                'sort_order' => 210,
+            ],
+
+            [
+                'menu_code' => 'item-master',
+                'menu_name' => 'Item Master',
+                'menu_group' => 'Warehouse',
+                'route_name' => 'warehouse.item-master.index',
+                'url' => '/warehouse/item-master',
+                'icon' => 'CubeIcon',
+                'sort_order' => 300,
+            ],
+            [
+                'menu_code' => 'warehouses',
+                'menu_name' => 'Warehouses',
+                'menu_group' => 'Warehouse',
+                'route_name' => 'warehouse.warehouses.index',
+                'url' => '/warehouse/warehouses',
+                'icon' => 'BoxIcon',
+                'sort_order' => 310,
+            ],
+
+            [
+                'menu_code' => 'approval',
+                'menu_name' => 'Approval',
+                'menu_group' => 'Workflow',
+                'route_name' => null,
+                'url' => '/workflow/approval',
+                'icon' => 'CheckCircleIcon',
+                'sort_order' => 400,
+            ],
+
+            [
+                'menu_code' => 'reports',
+                'menu_name' => 'Reports',
+                'menu_group' => 'Reports',
+                'route_name' => null,
+                'url' => '/reports',
+                'icon' => 'PieChartIcon',
+                'sort_order' => 500,
             ],
         ];
 
         foreach ($menus as $menu) {
             Menu::updateOrCreate(
-                ['menu_code' => $menu['menu_code']],
+                [
+                    'menu_code' => $menu['menu_code'],
+                ],
                 [
                     'menu_name' => $menu['menu_name'],
                     'menu_group' => $menu['menu_group'],

@@ -10,6 +10,7 @@ use App\Http\Controllers\Administrator\UserLevelController;
 use App\Http\Controllers\Purchasing\PurchaseOrderController;
 use App\Http\Controllers\Purchasing\PurchaseRequisitionController;
 use App\Http\Controllers\Purchasing\VendorController;
+use App\Http\Controllers\SupplyChain\MaterialRequestController;
 use App\Http\Controllers\Warehouse\ItemMasterController;
 use App\Http\Controllers\Warehouse\ItemMasterImportController;
 use App\Http\Controllers\Warehouse\WarehouseController;
@@ -237,6 +238,29 @@ Route::middleware(['auth'])
             'purchase-requisition/sync',
             [PurchaseRequisitionController::class, 'sync']
         )->name('purchase-requisition.sync');
+    });
+
+Route::middleware([
+    'auth',
+    'verified',
+])
+    ->prefix('supply-chain')
+    ->name('supply-chain.')
+    ->group(function (): void {
+        Route::get(
+            'material-requests/item-master-options',
+            [
+                MaterialRequestController::class,
+                'itemMasterOptions',
+            ]
+        )->name(
+            'material-requests.item-master-options'
+        );
+
+        Route::resource(
+            'material-requests',
+            MaterialRequestController::class
+        );
     });
 
 require __DIR__.'/settings.php';
