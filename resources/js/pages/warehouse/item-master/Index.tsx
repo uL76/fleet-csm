@@ -854,7 +854,7 @@ export default function ItemMasterIndex() {
 
     return (
         <AppLayout>
-            <Head title="Item Master Accurate" />
+            <Head title="Item Master" />
 
             <input
                 ref={fileInputRef}
@@ -879,7 +879,7 @@ export default function ItemMasterIndex() {
                                             : 'text-2xl font-bold text-gray-900'
                                     }
                                 >
-                                    Item Master Accurate
+                                    Item Master
                                 </h1>
 
                                 {syncRun && (

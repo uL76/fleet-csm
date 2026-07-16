@@ -286,6 +286,14 @@ class MasterAdministratorSeeder extends Seeder
                 'icon' => 'DocumentTextIcon',
                 'sort_order' => 40,
             ],
+            [
+                'name' => 'Purchase Requisition',
+                'route' => 'purchasing.purchase-requisition.index',
+                'icon' => 'FileText',
+                'parent' => 'Purchasing',
+                'order' => 20,
+                'is_active' => true,
+            ],
         ];
 
         foreach ($menus as $menu) {

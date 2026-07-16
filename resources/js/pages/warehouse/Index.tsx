@@ -284,13 +284,13 @@ export default function WarehouseIndex() {
 
     return (
         <AppLayout>
-            <Head title="Warehouse Accurate" />
+            <Head title="Warehouse" />
 
             <div className="space-y-6">
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">
-                            Warehouse Accurate
+                            Warehouse
                         </h1>
 
                         <p className="mt-1 text-sm font-medium text-gray-600">
@@ -748,8 +748,8 @@ export default function WarehouseIndex() {
                                             }
                                         }}
                                         className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${link.active
-                                                ? 'bg-brand-500 text-white'
-                                                : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                                            ? 'bg-brand-500 text-white'
+                                            : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                                             } disabled:cursor-not-allowed disabled:opacity-50`}
                                         dangerouslySetInnerHTML={{
                                             __html:
@@ -843,8 +843,8 @@ function StatusBadge({
     return (
         <span
             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${active
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-700'
                 }`}
         >
             {active ? 'Active' : 'Inactive'}
@@ -860,8 +860,8 @@ function TypeBadge({
     return (
         <span
             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${damage
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-blue-100 text-blue-700'
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-blue-100 text-blue-700'
                 }`}
         >
             {damage ? 'Damage' : 'Normal'}
@@ -983,10 +983,10 @@ function WarehouseDetailModal({
                             <div
                                 key={item.label}
                                 className={`grid grid-cols-1 gap-1 px-5 py-4 sm:grid-cols-[190px_1fr] sm:gap-4 ${index <
-                                        detailItems.length -
-                                        1
-                                        ? 'border-b border-gray-100'
-                                        : ''
+                                    detailItems.length -
+                                    1
+                                    ? 'border-b border-gray-100'
+                                    : ''
                                     }`}
                             >
                                 <div className="text-sm font-semibold text-gray-500">

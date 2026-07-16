@@ -60,23 +60,44 @@ const navItems: NavItem[] = [
     },
     {
         icon: <BoxCubeIcon />,
-        name: 'Purchase Order',
-        path: '/purchasing/purchase-order',
-    },
-    {
-        icon: <BoxCubeIcon />,
-        name: 'Item Master',
-        path: '/warehouse/item-master',
-    },
-    {
-        icon: <BoxCubeIcon />,
-        name: 'Warehouse',
-        path: '/warehouse/warehouses',
-    },
-    {
-        icon: <BoxCubeIcon />,
-        name: 'Vendor',
-        path: '/purchasing/vendor',
+        name: 'Supply Chain',
+        subItems: [
+            {
+                name: 'Material Request',
+                path: '/supply-chain/material-requests',
+                pro: false,
+            },
+            {
+                name: 'Purchase Requisition',
+                path: '/purchasing/purchase-requisition',
+                pro: false,
+            },
+            {
+                name: 'Purchase Order',
+                path: '/purchasing/purchase-order',
+                pro: false,
+            },
+            {
+                name: 'Item Master',
+                path: '/warehouse/item-master',
+                pro: false,
+            },
+            {
+                name: 'Warehouse',
+                path: '/warehouse/warehouses',
+                pro: false,
+            },
+            {
+                name: 'Vendor',
+                path: '/purchasing/vendor',
+                pro: false,
+            },
+            {
+                name: 'Approval Configuration',
+                path: '/supply-chain/approval-configurations',
+                pro: false,
+            },
+        ],
     },
 
     /*
