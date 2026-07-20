@@ -2,15 +2,16 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
-interface LoginForm {
+type LoginForm = {
     email: string;
     password: string;
     remember: boolean;
-}
+    [key: string]: string | boolean;
+};
 
 interface LoginProps {
     status?: string;
@@ -42,16 +43,6 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             <div className="min-h-screen bg-[#101828] text-white selection:bg-brand-500 selection:text-white">
                 <div className="grid min-h-screen lg:grid-cols-2">
                     <section className="flex min-h-screen flex-col bg-[#101828] px-6 py-8 sm:px-10 lg:px-16">
-                        <div className="w-full max-w-md">
-                            <Link
-                                href="/"
-                                className="inline-flex items-center text-sm font-medium text-gray-300 transition-colors hover:text-white"
-                            >
-                                {/* <span className="mr-2 text-lg leading-none">‹</span>
-                                Back to dashboard */}
-                            </Link>
-                        </div>
-
                         <div className="flex flex-1 items-center justify-center">
                             <div className="w-full max-w-md">
                                 <div className="mb-8">
@@ -111,13 +102,13 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                             </Label>
 
                                             {canResetPassword && (
-                                                <Link
+                                                <a
                                                     href={route('password.request')}
                                                     tabIndex={5}
                                                     className="text-sm font-semibold text-brand-400 hover:text-brand-300"
                                                 >
                                                     Forgot password?
-                                                </Link>
+                                                </a>
                                             )}
                                         </div>
 
@@ -205,19 +196,6 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                         Sign in
                                     </Button>
                                 </form>
-
-                                <div className="mt-6">
-                                    <p className="text-sm font-medium text-gray-400">
-                                        Don&apos;t have an account?{' '}
-                                        <Link
-                                            href={route('register')}
-                                            tabIndex={6}
-                                            className="font-bold text-brand-400 hover:text-brand-300"
-                                        >
-                                            Sign Up
-                                        </Link>
-                                    </p>
-                                </div>
                             </div>
                         </div>
                     </section>

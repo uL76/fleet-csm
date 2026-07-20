@@ -4,6 +4,7 @@ import {
     FormEvent,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from 'react';
 import Swal from 'sweetalert2';
@@ -273,6 +274,94 @@ function buildSyncResultBox(
             </div>
         </div>
     `;
+}
+
+
+type DatePickerFieldProps = {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    min?: string;
+    max?: string;
+};
+
+function DatePickerField({
+    id,
+    label,
+    value,
+    onChange,
+    min,
+    max,
+}: DatePickerFieldProps) {
+    const inputRef = useRef<HTMLInputElement | null>(null);
+
+    const openPicker = () => {
+        const input = inputRef.current;
+
+        if (!input) {
+            return;
+        }
+
+        input.focus();
+
+        if (
+            typeof input.showPicker === 'function'
+        ) {
+            input.showPicker();
+        }
+    };
+
+    return (
+        <div>
+            <label
+                htmlFor={id}
+                className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500"
+            >
+                {label}
+            </label>
+
+            <div className="relative">
+                <input
+                    ref={inputRef}
+                    id={id}
+                    type="date"
+                    value={value}
+                    min={min}
+                    max={max}
+                    onChange={(event) =>
+                        onChange(event.target.value)
+                    }
+                    onClick={openPicker}
+                    className="h-12 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-4 pr-12 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                />
+
+                <button
+                    type="button"
+                    onClick={openPicker}
+                    aria-label={`Buka kalender ${label}`}
+                    title={`Buka kalender ${label}`}
+                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-gray-500 transition hover:bg-gray-50 hover:text-brand-600 focus:outline-none"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        className="h-5 w-5"
+                        aria-hidden="true"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M5.25 5.25h13.5A1.5 1.5 0 0 1 20.25 6.75v12A1.5 1.5 0 0 1 18.75 20.25H5.25a1.5 1.5 0 0 1-1.5-1.5v-12a1.5 1.5 0 0 1 1.5-1.5Z"
+                        />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    );
 }
 
 export default function PurchaseOrderIndex() {
@@ -930,38 +1019,22 @@ export default function PurchaseOrderIndex() {
                         </div>
 
                         <div className="xl:col-span-2">
-                            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                Start Date
-                            </label>
-
-                            <input
-                                type="date"
+                            <DatePickerField
+                                id="purchase-order-start-date"
+                                label="Start Date"
                                 value={startDate}
-                                onChange={(event) =>
-                                    setStartDate(
-                                        event.target
-                                            .value,
-                                    )
-                                }
-                                className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                                max={endDate || undefined}
+                                onChange={setStartDate}
                             />
                         </div>
 
                         <div className="xl:col-span-2">
-                            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                End Date
-                            </label>
-
-                            <input
-                                type="date"
+                            <DatePickerField
+                                id="purchase-order-end-date"
+                                label="End Date"
                                 value={endDate}
-                                onChange={(event) =>
-                                    setEndDate(
-                                        event.target
-                                            .value,
-                                    )
-                                }
-                                className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                                min={startDate || undefined}
+                                onChange={setEndDate}
                             />
                         </div>
 

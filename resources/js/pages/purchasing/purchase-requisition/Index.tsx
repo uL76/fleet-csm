@@ -4,10 +4,47 @@ import {
     FormEvent,
     ReactNode,
     useEffect,
+    useRef,
     useMemo,
     useState,
 } from 'react';
 import Swal from 'sweetalert2';
+
+function formatLocalDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
+
+const currentDate = new Date();
+const today = formatLocalDate(currentDate);
+const firstDayOfCurrentMonth =
+    `${currentDate.getFullYear()}-${String(
+        currentDate.getMonth() + 1,
+    ).padStart(2, '0')}-01`;
+
+function openNativeDatePicker(
+    input: HTMLInputElement | null,
+): void {
+    if (!input) {
+        return;
+    }
+
+    input.focus();
+
+    const pickerInput = input as HTMLInputElement & {
+        showPicker?: () => void;
+    };
+
+    try {
+        pickerInput.showPicker?.();
+    } catch {
+        // Abaikan jika browser membatasi pemanggilan date picker.
+    }
+}
+
 
 type PurchaseRequisitionDetail = {
     id: number;
@@ -239,15 +276,17 @@ export default function PurchaseRequisitionIndex() {
     const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? '');
     const [startDate, setStartDate] = useState(
-        filters.start_date ?? '',
+        filters.start_date || firstDayOfCurrentMonth,
     );
     const [endDate, setEndDate] = useState(
-        filters.end_date ?? '',
+        filters.end_date || today,
     );
     const [perPage, setPerPage] = useState(
         String(filters.per_page ?? 10),
     );
     const [syncing, setSyncing] = useState(false);
+    const startDateRef = useRef<HTMLInputElement>(null);
+    const endDateRef = useRef<HTMLInputElement>(null);
     const [
         selectedPurchaseRequisition,
         setSelectedPurchaseRequisition,
@@ -299,8 +338,12 @@ export default function PurchaseRequisitionIndex() {
     useEffect(() => {
         setSearch(filters.search ?? '');
         setStatus(filters.status ?? '');
-        setStartDate(filters.start_date ?? '');
-        setEndDate(filters.end_date ?? '');
+        setStartDate(
+            filters.start_date || firstDayOfCurrentMonth,
+        );
+        setEndDate(
+            filters.end_date || today,
+        );
         setPerPage(String(filters.per_page ?? 10));
     }, [filters]);
 
@@ -452,13 +495,15 @@ export default function PurchaseRequisitionIndex() {
     const handleClearFilter = () => {
         setSearch('');
         setStatus('');
+        setStartDate(firstDayOfCurrentMonth);
+        setEndDate(today);
         setPerPage('10');
 
         router.get(
             '/purchasing/purchase-requisition',
             {
-                start_date: startDate,
-                end_date: endDate,
+                start_date: firstDayOfCurrentMonth,
+                end_date: today,
                 per_page: 10,
             },
             {
@@ -775,16 +820,38 @@ export default function PurchaseRequisitionIndex() {
                                 Start Date
                             </label>
 
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(event) =>
-                                    setStartDate(
-                                        event.target.value,
-                                    )
-                                }
-                                className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-                            />
+                            <div className="relative">
+                                <input
+                                    ref={startDateRef}
+                                    type="date"
+                                    value={startDate}
+                                    max={endDate || today}
+                                    onClick={() =>
+                                        openNativeDatePicker(
+                                            startDateRef.current,
+                                        )
+                                    }
+                                    onChange={(event) =>
+                                        setStartDate(
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="h-12 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-4 pr-12 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                                />
+
+                                <button
+                                    type="button"
+                                    aria-label="Buka kalender tanggal awal"
+                                    onClick={() =>
+                                        openNativeDatePicker(
+                                            startDateRef.current,
+                                        )
+                                    }
+                                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-gray-500 transition hover:bg-gray-50 hover:text-brand-600"
+                                >
+                                    <CalendarIcon />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="xl:col-span-2">
@@ -792,16 +859,39 @@ export default function PurchaseRequisitionIndex() {
                                 End Date
                             </label>
 
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(event) =>
-                                    setEndDate(
-                                        event.target.value,
-                                    )
-                                }
-                                className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-                            />
+                            <div className="relative">
+                                <input
+                                    ref={endDateRef}
+                                    type="date"
+                                    value={endDate}
+                                    min={startDate || firstDayOfCurrentMonth}
+                                    max={today}
+                                    onClick={() =>
+                                        openNativeDatePicker(
+                                            endDateRef.current,
+                                        )
+                                    }
+                                    onChange={(event) =>
+                                        setEndDate(
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="h-12 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-4 pr-12 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                                />
+
+                                <button
+                                    type="button"
+                                    aria-label="Buka kalender tanggal akhir"
+                                    onClick={() =>
+                                        openNativeDatePicker(
+                                            endDateRef.current,
+                                        )
+                                    }
+                                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-gray-500 transition hover:bg-gray-50 hover:text-brand-600"
+                                >
+                                    <CalendarIcon />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="xl:col-span-2">
@@ -1087,8 +1177,8 @@ export default function PurchaseRequisitionIndex() {
                                             }
                                         }}
                                         className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${link.active
-                                                ? 'bg-brand-500 text-white'
-                                                : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                                            ? 'bg-brand-500 text-white'
+                                            : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                                             } disabled:cursor-not-allowed disabled:opacity-50`}
                                     >
                                         {stripHtml(link.label)}
@@ -1111,6 +1201,26 @@ export default function PurchaseRequisitionIndex() {
                 />
             )}
         </AppLayout>
+    );
+}
+
+
+function CalendarIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+            className="h-5 w-5"
+        >
+            <path
+                d="M7 3V6M17 3V6M4.5 9H19.5M6 5H18C19.1046 5 20 5.89543 20 7V19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19V7C4 5.89543 4.89543 5 6 5Z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
     );
 }
 
@@ -1362,9 +1472,9 @@ function PurchaseRequisitionDetailModal({
                                 <div
                                     key={item.label}
                                     className={`grid grid-cols-1 gap-1 px-5 py-4 ${index <
-                                            headerItems.length - 1
-                                            ? 'border-b border-gray-100'
-                                            : ''
+                                        headerItems.length - 1
+                                        ? 'border-b border-gray-100'
+                                        : ''
                                         }`}
                                 >
                                     <div className="text-sm font-semibold text-gray-500">

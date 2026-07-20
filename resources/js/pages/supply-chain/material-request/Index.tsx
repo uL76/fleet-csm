@@ -9,6 +9,7 @@ import {
     ReactNode,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from 'react';
 
@@ -385,11 +386,12 @@ export default function MaterialRequestIndex() {
         );
 
         setDateFrom(
-            filters.date_from ?? '',
+            filters.date_from ??
+            firstDayOfCurrentMonth(),
         );
 
         setDateTo(
-            filters.date_to ?? '',
+            filters.date_to ?? today(),
         );
 
         setPerPage(
@@ -832,40 +834,20 @@ export default function MaterialRequestIndex() {
                         </div>
 
                         <div className="lg:col-span-2">
-                            <label className="mb-1.5 block text-xs font-semibold text-gray-500">
-                                MR Date From
-                            </label>
-
-                            <input
-                                type="date"
-                                value={
-                                    dateFrom
-                                }
-                                onChange={(event) =>
-                                    setDateFrom(
-                                        event.target
-                                            .value,
-                                    )
-                                }
-                                className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                            <DatePickerField
+                                label="MR Date From"
+                                value={dateFrom}
+                                max={dateTo || undefined}
+                                onChange={setDateFrom}
                             />
                         </div>
 
                         <div className="lg:col-span-2">
-                            <label className="mb-1.5 block text-xs font-semibold text-gray-500">
-                                MR Date To
-                            </label>
-
-                            <input
-                                type="date"
+                            <DatePickerField
+                                label="MR Date To"
                                 value={dateTo}
-                                onChange={(event) =>
-                                    setDateTo(
-                                        event.target
-                                            .value,
-                                    )
-                                }
-                                className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                                min={dateFrom || undefined}
+                                onChange={setDateTo}
                             />
                         </div>
 
@@ -1158,6 +1140,70 @@ export default function MaterialRequestIndex() {
     );
 }
 
+function DatePickerField({
+    label,
+    value,
+    onChange,
+    min,
+    max,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    min?: string;
+    max?: string;
+}) {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const openCalendar = () => {
+        const input = inputRef.current;
+
+        if (!input) {
+            return;
+        }
+
+        if (typeof input.showPicker === 'function') {
+            input.showPicker();
+            return;
+        }
+
+        input.focus();
+        input.click();
+    };
+
+    return (
+        <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-500">
+                {label}
+            </label>
+
+            <div className="relative">
+                <input
+                    ref={inputRef}
+                    type="date"
+                    value={value}
+                    min={min}
+                    max={max}
+                    onChange={(event) =>
+                        onChange(event.target.value)
+                    }
+                    onClick={openCalendar}
+                    className="h-12 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-4 pr-12 text-sm font-medium text-gray-800 outline-none transition [color-scheme:light] focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                />
+
+                <button
+                    type="button"
+                    onClick={openCalendar}
+                    aria-label={`Pilih ${label}`}
+                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-gray-500 transition hover:bg-gray-50 hover:text-brand-600"
+                >
+                    <CalendarIcon />
+                </button>
+            </div>
+        </div>
+    );
+}
+
 function MaterialRequestRowActions({
     materialRequest,
 }: {
@@ -1310,6 +1356,39 @@ function ChevronIcon({
                 strokeWidth="1.8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
+
+function CalendarIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-5 w-5"
+            aria-hidden="true"
+        >
+            <path
+                d="M7 3v3M17 3v3M4.5 9h15"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+            />
+            <rect
+                x="4.5"
+                y="5"
+                width="15"
+                height="15"
+                rx="2.5"
+                stroke="currentColor"
+                strokeWidth="1.7"
+            />
+            <path
+                d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
             />
         </svg>
     );

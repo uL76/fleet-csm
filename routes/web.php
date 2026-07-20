@@ -7,6 +7,7 @@ use App\Http\Controllers\Administrator\PositionController;
 use App\Http\Controllers\Administrator\UserConfigController;
 use App\Http\Controllers\Administrator\UserController;
 use App\Http\Controllers\Administrator\UserLevelController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Purchasing\PurchaseOrderController;
 use App\Http\Controllers\Purchasing\PurchaseRequisitionController;
 use App\Http\Controllers\Purchasing\VendorController;
@@ -30,16 +31,23 @@ Route::get('/', function () {
 
 // Dashboard routes
 Route::middleware(['auth'])->group(function (): void {
-    Route::get('/dashboard', function () {
-        return Inertia::render('dashboard/Index');
-    })->name('dashboard');
+    Route::get(
+        '/dashboard',
+        [
+            DashboardController::class,
+            'index',
+        ]
+    )->name('dashboard');
 
     /*
      * Menjaga URL lama tetap berfungsi.
      */
-    Route::get('/fleet-dashboard', function () {
-        return redirect()->route('dashboard');
-    })->name('fleet-dashboard');
+    Route::get(
+        '/fleet-dashboard',
+        function () {
+            return redirect()->route('dashboard');
+        }
+    )->name('fleet-dashboard');
 });
 
 // Authentication routes
