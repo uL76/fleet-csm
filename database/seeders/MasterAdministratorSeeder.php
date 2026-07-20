@@ -316,7 +316,7 @@ class MasterAdministratorSeeder extends Seeder
                 'menu_name' => 'Dashboard',
                 'menu_group' => 'Dashboard',
                 'route_name' => 'dashboard',
-                'url' => '/fleet-dashboard',
+                'url' => '/dashboard',
                 'icon' => 'GridIcon',
                 'sort_order' => 1,
             ],

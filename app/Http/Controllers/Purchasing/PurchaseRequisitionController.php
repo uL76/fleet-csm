@@ -17,9 +17,39 @@ class PurchaseRequisitionController extends Controller
     {
         $search = trim((string) $request->input('search', ''));
         $status = trim((string) $request->input('status', ''));
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
-        $perPage = max(10, min(100, (int) $request->input('per_page', 10)));
+
+        $startDate = trim(
+            (string) $request->input(
+                'start_date',
+                now()->startOfMonth()->toDateString()
+            )
+        );
+
+        $endDate = trim(
+            (string) $request->input(
+                'end_date',
+                now()->toDateString()
+            )
+        );
+
+        if ($startDate === '') {
+            $startDate = now()
+                ->startOfMonth()
+                ->toDateString();
+        }
+
+        if ($endDate === '') {
+            $endDate = now()
+                ->toDateString();
+        }
+
+        $perPage = max(
+            10,
+            min(
+                100,
+                (int) $request->input('per_page', 10)
+            )
+        );
 
         $purchaseRequisitions = PurchaseRequisition::query()
             ->with([
@@ -33,12 +63,20 @@ class PurchaseRequisitionController extends Controller
                 fn ($query) => $query->where('pr_status', $status)
             )
             ->when(
-                $startDate,
-                fn ($query) => $query->whereDate('trans_date', '>=', $startDate)
+                $startDate !== '',
+                fn ($query) => $query->whereDate(
+                    'trans_date',
+                    '>=',
+                    $startDate
+                )
             )
             ->when(
-                $endDate,
-                fn ($query) => $query->whereDate('trans_date', '<=', $endDate)
+                $endDate !== '',
+                fn ($query) => $query->whereDate(
+                    'trans_date',
+                    '<=',
+                    $endDate
+                )
             )
             ->latest('trans_date')
             ->latest('id')
@@ -53,31 +91,35 @@ class PurchaseRequisitionController extends Controller
             ->pluck('pr_status')
             ->values();
 
-        return Inertia::render('purchasing/purchase-requisition/Index', [
-            'purchaseRequisitions' => $purchaseRequisitions,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-                'per_page' => $perPage,
-            ],
-            'statuses' => $statuses,
-            'summary' => [
-                'total_pr' => PurchaseRequisition::query()->count(),
-                'total_open' => PurchaseRequisition::query()
-                    ->where('is_closed', false)
-                    ->count(),
-                'total_closed' => PurchaseRequisition::query()
-                    ->where('is_closed', true)
-                    ->count(),
-                'total_quantity' => (float) PurchaseRequisition::query()
-                    ->withSum('details', 'quantity')
-                    ->get()
-                    ->sum('details_sum_quantity'),
-            ],
-            'lastSyncAt' => PurchaseRequisition::query()->max('last_sync_at'),
-        ]);
+        return Inertia::render(
+            'purchasing/purchase-requisition/Index',
+            [
+                'purchaseRequisitions' => $purchaseRequisitions,
+                'filters' => [
+                    'search' => $search,
+                    'status' => $status,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'per_page' => $perPage,
+                ],
+                'statuses' => $statuses,
+                'summary' => [
+                    'total_pr' => PurchaseRequisition::query()->count(),
+                    'total_open' => PurchaseRequisition::query()
+                        ->where('is_closed', false)
+                        ->count(),
+                    'total_closed' => PurchaseRequisition::query()
+                        ->where('is_closed', true)
+                        ->count(),
+                    'total_quantity' => (float) PurchaseRequisition::query()
+                        ->withSum('details', 'quantity')
+                        ->get()
+                        ->sum('details_sum_quantity'),
+                ],
+                'lastSyncAt' => PurchaseRequisition::query()
+                    ->max('last_sync_at'),
+            ]
+        );
     }
 
     public function sync(
@@ -86,7 +128,11 @@ class PurchaseRequisitionController extends Controller
     ): RedirectResponse {
         $validated = $request->validate([
             'start_date' => ['required', 'date'],
-            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'end_date' => [
+                'required',
+                'date',
+                'after_or_equal:start_date',
+            ],
         ]);
 
         try {
@@ -108,7 +154,8 @@ class PurchaseRequisitionController extends Controller
 
             return back()->with(
                 'error',
-                'Sinkronisasi Purchase Requisition gagal: '.$exception->getMessage()
+                'Sinkronisasi Purchase Requisition gagal: '
+                .$exception->getMessage()
             );
         }
     }

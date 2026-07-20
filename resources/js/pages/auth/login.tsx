@@ -47,8 +47,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                 href="/"
                                 className="inline-flex items-center text-sm font-medium text-gray-300 transition-colors hover:text-white"
                             >
-                                <span className="mr-2 text-lg leading-none">‹</span>
-                                Back to dashboard
+                                {/* <span className="mr-2 text-lg leading-none">‹</span>
+                                Back to dashboard */}
                             </Link>
                         </div>
 

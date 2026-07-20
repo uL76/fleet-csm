@@ -2,6 +2,7 @@ import AppLayout from '@/layouts/tailadmin/AppLayout';
 import { Head, router, usePage } from '@inertiajs/react';
 import {
     FormEvent,
+    ReactNode,
     useEffect,
     useMemo,
     useState,
@@ -1117,7 +1118,7 @@ function TableHeader({
     children,
     align = 'left',
 }: {
-    children: React.ReactNode;
+    children: ReactNode;
     align?: 'left' | 'center' | 'right';
 }) {
     const alignClass =
