@@ -10,53 +10,37 @@ use App\Http\Controllers\Administrator\UserLevelController;
 use App\Http\Controllers\Purchasing\PurchaseOrderController;
 use App\Http\Controllers\Purchasing\PurchaseRequisitionController;
 use App\Http\Controllers\Purchasing\VendorController;
+use App\Http\Controllers\SupplyChain\ApprovalConfigurationController;
 use App\Http\Controllers\SupplyChain\MaterialRequestController;
+use App\Http\Controllers\SupplyChain\MaterialRequestWorkflowController;
 use App\Http\Controllers\Warehouse\ItemMasterController;
 use App\Http\Controllers\Warehouse\ItemMasterImportController;
 use App\Http\Controllers\Warehouse\WarehouseController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('welcome');
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+
+    return redirect()->route('login');
 })->name('home');
 
 // Dashboard routes
-Route::get('/fleet-dashboard', function () {
-    return Inertia::render('dashboard/Index');
-})->name('dashboard');
+Route::middleware(['auth'])->group(function (): void {
+    Route::get('/dashboard', function () {
+        return Inertia::render('dashboard/Index');
+    })->name('dashboard');
 
-Route::get('/material-request', function () {
-    return Inertia::render('material-request/Index');
-})->name('material-request.index');
-
-Route::get('/purchase-order', function () {
-    return Inertia::render('purchase-order/Index');
-})->name('purchase-order.index');
-
-Route::get('/receive-item', function () {
-    return Inertia::render('receive-item/Index');
-})->name('receive-item.index');
-
-Route::get('/accurate-sync', function () {
-    return Inertia::render('accurate-sync/Index');
-})->name('accurate-sync.index');
-
-Route::get('/approval', function () {
-    return Inertia::render('approval/Index');
-})->name('approval.index');
-
-Route::get('/report', function () {
-    return Inertia::render('report/Index');
-})->name('report.index');
-
-Route::get('/users', function () {
-    return Inertia::render('users/Index');
-})->name('users.index');
-
-Route::get('/settings', function () {
-    return Inertia::render('settings/Index');
-})->name('settings.index');
+    /*
+     * Menjaga URL lama tetap berfungsi.
+     */
+    Route::get('/fleet-dashboard', function () {
+        return redirect()->route('dashboard');
+    })->name('fleet-dashboard');
+});
 
 // Authentication routes
 Route::middleware(['auth'])->prefix('administrator')->name('administrator.')->group(function () {
@@ -257,10 +241,84 @@ Route::middleware([
             'material-requests.item-master-options'
         );
 
+        Route::get(
+            'material-requests/{materialRequest}/edit-data',
+            [
+                MaterialRequestController::class,
+                'editData',
+            ]
+        )->name(
+            'material-requests.edit-data'
+        );
+
+        Route::post(
+            'material-requests/{materialRequest}/submit',
+            [
+                MaterialRequestWorkflowController::class,
+                'submit',
+            ]
+        )->name(
+            'material-requests.submit'
+        );
+
+        Route::post(
+            'material-requests/{materialRequest}/review',
+            [
+                MaterialRequestWorkflowController::class,
+                'review',
+            ]
+        )->name(
+            'material-requests.review'
+        );
+
+        Route::post(
+            'material-requests/{materialRequest}/approve',
+            [
+                MaterialRequestWorkflowController::class,
+                'approve',
+            ]
+        )->name(
+            'material-requests.approve'
+        );
+
+        Route::post(
+            'material-requests/{materialRequest}/revision',
+            [
+                MaterialRequestWorkflowController::class,
+                'revision',
+            ]
+        )->name(
+            'material-requests.revision'
+        );
+
+        Route::post(
+            'material-requests/{materialRequest}/reject',
+            [
+                MaterialRequestWorkflowController::class,
+                'reject',
+            ]
+        )->name(
+            'material-requests.reject'
+        );
+
         Route::resource(
             'material-requests',
             MaterialRequestController::class
         );
+        Route::get(
+            'approval-configuration',
+            [ApprovalConfigurationController::class, 'index']
+        )->name('approval-configuration.index');
+
+        Route::put(
+            'approval-configuration/{department}/matrix',
+            [ApprovalConfigurationController::class, 'syncDepartment']
+        )->name('approval-configuration.sync-department');
+
+        Route::post(
+            'approval-configuration/{department}/copy',
+            [ApprovalConfigurationController::class, 'copyFromDepartment']
+        )->name('approval-configuration.copy');
     });
 
 require __DIR__.'/settings.php';

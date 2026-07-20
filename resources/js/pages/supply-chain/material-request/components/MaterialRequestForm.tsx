@@ -52,19 +52,6 @@ function today(): string {
         .slice(0, 10);
 }
 
-function normalizeDate(
-    value: unknown,
-): string {
-    if (
-        typeof value !== 'string'
-        || value === ''
-    ) {
-        return '';
-    }
-
-    return value.slice(0, 10);
-}
-
 export default function MaterialRequestForm({
     mode,
     departments,
@@ -94,13 +81,14 @@ export default function MaterialRequestForm({
             initialData?.department_id ??
             String(
                 requester.department_id ??
-                    '',
+                '',
             ),
 
         company_id:
             initialData?.company_id ??
             String(
-                requester.company_id ?? '',
+                requester.company_id ??
+                '',
             ),
 
         branch:
@@ -184,41 +172,41 @@ export default function MaterialRequestForm({
         }
 
         const newItem: MaterialRequestItemForm =
-            {
-                row_id:
-                    createRowId(),
-                item_master_id:
-                    item.id,
-                item_code:
-                    item.item_code,
-                part_number:
-                    item.part_number ??
-                    '',
-                description:
-                    item.item_description ??
-                    item.item_code,
-                brand:
-                    item.brand_name ?? '',
-                uom:
-                    item.unit_name ?? '',
-                quantity: '1',
-                available_stock:
-                    String(
-                        item.total_stock ??
-                            0,
-                    ),
-                required_date:
-                    data.required_date ??
-                    '',
-                suggested_vendor:
-                    item.preferred_vendor ??
-                    '',
-                estimated_price: '',
-                lead_time_days: '',
-                remarks: '',
-                process_status:
-                    'PENDING',
-            };
+        {
+            row_id:
+                createRowId(),
+            item_master_id:
+                item.id,
+            item_code:
+                item.item_code,
+            part_number:
+                item.part_number ??
+                '',
+            description:
+                item.item_description ??
+                item.item_code,
+            brand:
+                item.brand_name ?? '',
+            uom:
+                item.unit_name ?? '',
+            quantity: '1',
+            available_stock:
+                String(
+                    item.total_stock ??
+                    0,
+                ),
+            required_date:
+                data.required_date ??
+                '',
+            suggested_vendor:
+                item.preferred_vendor ??
+                '',
+            estimated_price: '',
+            lead_time_days: '',
+            remarks: '',
+            process_status:
+                'PENDING',
+        };
 
         setData('items', [
             ...data.items,
@@ -347,38 +335,36 @@ export default function MaterialRequestForm({
         <>
             <form
                 onSubmit={handleSubmit}
-                className="space-y-5"
+                className="space-y-4"
             >
-                <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <div className="mb-5">
-                        <h2 className="text-lg font-bold text-gray-900">
-                            MR Header Information
-                        </h2>
+                <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900">
+                                Material Request Information
+                            </h2>
 
-                        <p className="mt-1 text-sm text-gray-600">
-                            Lengkapi informasi utama Material Request.
-                        </p>
+                            <p className="mt-1 text-sm text-gray-600">
+                                Lengkapi informasi utama, referensi, dan kebutuhan Material Request.
+                            </p>
+                        </div>
+
+                        <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500">
+                            Fields dengan tanda
+                            <span className="mx-1 text-red-500">
+                                *
+                            </span>
+                            wajib diisi
+                        </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-                        <Field
-                            label="MR Date"
-                            required
-                            error={
-                                errors.mr_date
-                            }
-                        >
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <Field label="MR Date" required error={errors.mr_date}>
                             <input
                                 type="date"
-                                value={
-                                    data.mr_date
-                                }
+                                value={data.mr_date}
                                 onChange={(event) =>
-                                    setData(
-                                        'mr_date',
-                                        event.target
-                                            .value,
-                                    )
+                                    setData('mr_date', event.target.value)
                                 }
                                 className={inputClass}
                             />
@@ -387,373 +373,183 @@ export default function MaterialRequestForm({
                         <Field label="Requested By">
                             <input
                                 type="text"
-                                value={
-                                    requester.name
-                                }
+                                value={requester.name}
                                 disabled
                                 className={`${inputClass} cursor-not-allowed bg-gray-100`}
                             />
                         </Field>
 
-                        <Field
-                            label="Department"
-                            required
-                            error={
-                                errors.department_id
-                            }
-                        >
+                        <Field label="Department" required error={errors.department_id}>
                             <select
-                                value={
-                                    data.department_id
-                                }
+                                value={data.department_id}
                                 onChange={(event) =>
-                                    setData(
-                                        'department_id',
-                                        event.target
-                                            .value,
-                                    )
+                                    setData('department_id', event.target.value)
                                 }
                                 className={inputClass}
                             >
-                                <option value="">
-                                    Select Department
-                                </option>
-
-                                {departments.map(
-                                    (
-                                        department,
-                                    ) => (
-                                        <option
-                                            key={
-                                                department.id
-                                            }
-                                            value={
-                                                department.id
-                                            }
-                                        >
-                                            {
-                                                department.department_name
-                                            }
-                                        </option>
-                                    ),
-                                )}
+                                <option value="">Select Department</option>
+                                {departments.map((department) => (
+                                    <option key={department.id} value={department.id}>
+                                        {department.department_name}
+                                    </option>
+                                ))}
                             </select>
                         </Field>
 
-                        <Field
-                            label="Company"
-                            error={
-                                errors.company_id
-                            }
-                        >
+                        <Field label="Company" error={errors.company_id}>
                             <select
-                                value={
-                                    data.company_id
-                                }
+                                value={data.company_id}
                                 onChange={(event) =>
-                                    setData(
-                                        'company_id',
-                                        event.target
-                                            .value,
-                                    )
+                                    setData('company_id', event.target.value)
                                 }
                                 className={inputClass}
                             >
-                                <option value="">
-                                    Select Company
-                                </option>
-
-                                {companies.map(
-                                    (company) => (
-                                        <option
-                                            key={
-                                                company.id
-                                            }
-                                            value={
-                                                company.id
-                                            }
-                                        >
-                                            {
-                                                company.company_name
-                                            }
-                                        </option>
-                                    ),
-                                )}
+                                <option value="">Select Company</option>
+                                {companies.map((company) => (
+                                    <option key={company.id} value={company.id}>
+                                        {company.company_name}
+                                    </option>
+                                ))}
                             </select>
                         </Field>
 
-                        <Field
-                            label="Branch"
-                            error={
-                                errors.branch
-                            }
-                        >
+                        <Field label="Branch" error={errors.branch}>
                             <input
                                 type="text"
-                                value={
-                                    data.branch
-                                }
+                                value={data.branch}
                                 onChange={(event) =>
-                                    setData(
-                                        'branch',
-                                        event.target
-                                            .value,
-                                    )
+                                    setData('branch', event.target.value)
                                 }
                                 placeholder="Branch"
                                 className={inputClass}
                             />
                         </Field>
 
-                        <Field
-                            label="Priority"
-                            required
-                            error={
-                                errors.priority
-                            }
-                        >
+                        <Field label="Priority" required error={errors.priority}>
                             <select
-                                value={
-                                    data.priority
-                                }
+                                value={data.priority}
                                 onChange={(event) =>
                                     setData(
                                         'priority',
-                                        event.target
-                                            .value as MaterialRequestFormData['priority'],
+                                        event.target.value as MaterialRequestFormData['priority'],
                                     )
                                 }
                                 className={inputClass}
                             >
-                                {priorityOptions.map(
-                                    (option) => (
-                                        <option
-                                            key={
-                                                option.value
-                                            }
-                                            value={
-                                                option.value
-                                            }
-                                        >
-                                            {
-                                                option.label
-                                            }
-                                        </option>
-                                    ),
-                                )}
+                                {priorityOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
                             </select>
                         </Field>
 
-                        <Field
-                            label="Required Date"
-                            error={
-                                errors.required_date
-                            }
-                        >
+                        <Field label="Required Date" error={errors.required_date}>
                             <input
                                 type="date"
-                                value={
-                                    data.required_date
-                                }
+                                value={data.required_date}
                                 onChange={(event) => {
-                                    const value =
-                                        event.target
-                                            .value;
-
-                                    setData(
-                                        'required_date',
-                                        value,
-                                    );
-
+                                    const value = event.target.value;
+                                    setData('required_date', value);
                                     setData(
                                         'items',
-                                        data.items.map(
-                                            (
-                                                item,
-                                            ) => ({
-                                                ...item,
-                                                required_date:
-                                                    item.required_date ||
-                                                    value,
-                                            }),
-                                        ),
+                                        data.items.map((item) => ({
+                                            ...item,
+                                            required_date:
+                                                item.required_date || value,
+                                        })),
                                     );
                                 }}
                                 className={inputClass}
                             />
                         </Field>
 
-                        <Field
-                            label="Request Type"
-                            required
-                            error={
-                                errors.request_type
-                            }
-                        >
+                        <Field label="Request Type" required error={errors.request_type}>
                             <select
-                                value={
-                                    data.request_type
-                                }
+                                value={data.request_type}
                                 onChange={(event) =>
                                     setData(
                                         'request_type',
-                                        event.target
-                                            .value as MaterialRequestFormData['request_type'],
+                                        event.target.value as MaterialRequestFormData['request_type'],
                                     )
                                 }
                                 className={inputClass}
                             >
-                                {requestTypeOptions.map(
-                                    (option) => (
-                                        <option
-                                            key={
-                                                option.value
-                                            }
-                                            value={
-                                                option.value
-                                            }
-                                        >
-                                            {
-                                                option.label
-                                            }
-                                        </option>
-                                    ),
-                                )}
+                                {requestTypeOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
                             </select>
                         </Field>
+
+                        <div className="md:col-span-2 xl:col-span-2">
+                            <Field label="Subject" required error={errors.subject}>
+                                <input
+                                    type="text"
+                                    value={data.subject}
+                                    onChange={(event) =>
+                                        setData('subject', event.target.value)
+                                    }
+                                    placeholder="Material Request subject"
+                                    className={inputClass}
+                                />
+                            </Field>
+                        </div>
+
+                        <Field label="Customer Name" error={errors.customer_name}>
+                            <input
+                                type="text"
+                                value={data.customer_name}
+                                onChange={(event) =>
+                                    setData('customer_name', event.target.value)
+                                }
+                                placeholder="Customer name"
+                                className={inputClass}
+                            />
+                        </Field>
+
+                        <Field label="Sales Order No" error={errors.sales_order_no}>
+                            <input
+                                type="text"
+                                value={data.sales_order_no}
+                                onChange={(event) =>
+                                    setData('sales_order_no', event.target.value)
+                                }
+                                placeholder="Sales order number"
+                                className={inputClass}
+                            />
+                        </Field>
+
+                        <Field label="Reference RFQ" error={errors.reference_rfq}>
+                            <input
+                                type="text"
+                                value={data.reference_rfq}
+                                onChange={(event) =>
+                                    setData('reference_rfq', event.target.value)
+                                }
+                                placeholder="Reference RFQ"
+                                className={inputClass}
+                            />
+                        </Field>
+
+                        <div className="md:col-span-2 xl:col-span-4">
+                            <Field label="Remarks" error={errors.remarks}>
+                                <textarea
+                                    value={data.remarks}
+                                    onChange={(event) =>
+                                        setData('remarks', event.target.value)
+                                    }
+                                    placeholder="Additional remarks"
+                                    className={`${inputClass} min-h-20 resize-y py-3`}
+                                />
+                            </Field>
+                        </div>
                     </div>
                 </section>
 
-                <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 className="mb-5 text-lg font-bold text-gray-900">
-                        Reference Information
-                    </h2>
-
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                        <Field
-                            label="Customer Name"
-                            error={
-                                errors.customer_name
-                            }
-                        >
-                            <input
-                                type="text"
-                                value={
-                                    data.customer_name
-                                }
-                                onChange={(event) =>
-                                    setData(
-                                        'customer_name',
-                                        event.target
-                                            .value,
-                                    )
-                                }
-                                className={inputClass}
-                            />
-                        </Field>
-
-                        <Field
-                            label="Sales Order No"
-                            error={
-                                errors.sales_order_no
-                            }
-                        >
-                            <input
-                                type="text"
-                                value={
-                                    data.sales_order_no
-                                }
-                                onChange={(event) =>
-                                    setData(
-                                        'sales_order_no',
-                                        event.target
-                                            .value,
-                                    )
-                                }
-                                className={inputClass}
-                            />
-                        </Field>
-
-                        <Field
-                            label="Reference RFQ"
-                            error={
-                                errors.reference_rfq
-                            }
-                        >
-                            <input
-                                type="text"
-                                value={
-                                    data.reference_rfq
-                                }
-                                onChange={(event) =>
-                                    setData(
-                                        'reference_rfq',
-                                        event.target
-                                            .value,
-                                    )
-                                }
-                                className={inputClass}
-                            />
-                        </Field>
-                    </div>
-                </section>
-
-                <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 className="mb-5 text-lg font-bold text-gray-900">
-                        Request Information
-                    </h2>
-
-                    <div className="space-y-5">
-                        <Field
-                            label="Subject"
-                            required
-                            error={
-                                errors.subject
-                            }
-                        >
-                            <input
-                                type="text"
-                                value={
-                                    data.subject
-                                }
-                                onChange={(event) =>
-                                    setData(
-                                        'subject',
-                                        event.target
-                                            .value,
-                                    )
-                                }
-                                placeholder="Material Request subject"
-                                className={inputClass}
-                            />
-                        </Field>
-
-                        <Field
-                            label="Remarks"
-                            error={
-                                errors.remarks
-                            }
-                        >
-                            <textarea
-                                value={
-                                    data.remarks
-                                }
-                                onChange={(event) =>
-                                    setData(
-                                        'remarks',
-                                        event.target
-                                            .value,
-                                    )
-                                }
-                                placeholder="Additional remarks"
-                                className={`${inputClass} min-h-28 py-3`}
-                            />
-                        </Field>
-                    </div>
-                </section>
-
-                <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                         <div>
                             <h2 className="text-lg font-bold text-gray-900">
                                 Material Request Items
@@ -766,11 +562,7 @@ export default function MaterialRequestForm({
 
                         <button
                             type="button"
-                            onClick={() =>
-                                setPickerOpen(
-                                    true,
-                                )
-                            }
+                            onClick={() => setPickerOpen(true)}
                             className="inline-flex items-center justify-center rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600"
                         >
                             Add Item
@@ -779,12 +571,7 @@ export default function MaterialRequestForm({
 
                     <MaterialRequestItemsTable
                         items={data.items}
-                        onChange={(items) =>
-                            setData(
-                                'items',
-                                items,
-                            )
-                        }
+                        onChange={(items) => setData('items', items)}
                     />
 
                     {errors.items && (
@@ -793,8 +580,8 @@ export default function MaterialRequestForm({
                         </p>
                     )}
 
-                    <div className="mt-5 flex justify-end">
-                        <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-right">
+                    <div className="mt-4 flex justify-end">
+                        <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-3 text-right">
                             <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                                 Total Estimated Value
                             </div>
@@ -804,12 +591,9 @@ export default function MaterialRequestForm({
                                     'id-ID',
                                     {
                                         style: 'currency',
-                                        currency:
-                                            'IDR',
+                                        currency: 'IDR',
                                     },
-                                ).format(
-                                    totalEstimatedPrice,
-                                )}
+                                ).format(totalEstimatedPrice)}
                             </div>
                         </div>
                     </div>
@@ -830,29 +614,24 @@ export default function MaterialRequestForm({
                     >
                         {processing
                             ? 'Saving...'
-                            : mode ===
-                                'create'
-                              ? 'Save Draft'
-                              : 'Update Draft'}
+                            : mode === 'create'
+                                ? 'Save Draft'
+                                : 'Update Draft'}
                     </button>
                 </div>
             </form>
 
             <ItemMasterPickerModal
                 open={pickerOpen}
-                onClose={() =>
-                    setPickerOpen(false)
-                }
-                onSelect={
-                    handleSelectItem
-                }
+                onClose={() => setPickerOpen(false)}
+                onSelect={handleSelectItem}
             />
         </>
     );
 }
 
 const inputClass =
-    'h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20';
+    'h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20';
 
 function Field({
     label,

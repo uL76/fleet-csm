@@ -13,6 +13,7 @@ use App\Services\SupplyChain\MaterialRequestService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,8 +46,15 @@ class MaterialRequestController extends Controller
             (string) $request->input('priority', '')
         );
 
-        $dateFrom = $request->input('date_from');
-        $dateTo = $request->input('date_to');
+        $dateFrom = $request->input(
+            'date_from',
+            now()->startOfMonth()->toDateString()
+        );
+
+        $dateTo = $request->input(
+            'date_to',
+            now()->toDateString()
+        );
 
         $perPage = (int) $request->input(
             'per_page',
@@ -179,6 +187,21 @@ class MaterialRequestController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
+        $materialRequests->getCollection()
+            ->transform(function (
+                MaterialRequest $materialRequest
+            ) use ($request): MaterialRequest {
+                $materialRequest->setAttribute(
+                    'can_edit',
+                    $request->user()->can(
+                        'update',
+                        $materialRequest
+                    )
+                );
+
+                return $materialRequest;
+            });
+
         $summaryBaseQuery =
             MaterialRequest::query();
 
@@ -230,6 +253,20 @@ class MaterialRequestController extends Controller
                 'summary' => $summary,
 
                 'departments' => $departments,
+
+                'companies' => $this->companyOptions(),
+
+                'requester' => [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'department_id' => $request->user()->department_id,
+                    'company_id' => $request->user()->company_id,
+                ],
+
+                'priorityOptions' => $this->priorityOptions(),
+
+                'requestTypeOptions' => $this->requestTypeOptions(),
 
                 'filters' => [
                     'search' => $search,
@@ -301,8 +338,7 @@ class MaterialRequestController extends Controller
             );
 
         return to_route(
-            'supply-chain.material-requests.show',
-            $materialRequest
+            'supply-chain.material-requests.index'
         )->with(
             'success',
             'Material Request berhasil dibuat.'
@@ -348,7 +384,28 @@ class MaterialRequestController extends Controller
                         'submit',
                         $materialRequest
                     ),
+
+                    'can_review' => $request->user()->can(
+                        'review',
+                        $materialRequest
+                    ),
+
+                    'can_approve' => $request->user()->can(
+                        'approve',
+                        $materialRequest
+                    ),
+
+                    'can_revision' => $request->user()->can(
+                        'requestRevision',
+                        $materialRequest
+                    ),
+
+                    'can_reject' => $request->user()->can(
+                        'reject',
+                        $materialRequest
+                    ),
                 ],
+
             ]
         );
     }
@@ -384,6 +441,24 @@ class MaterialRequestController extends Controller
         );
     }
 
+    public function editData(
+        MaterialRequest $materialRequest
+    ): JsonResponse {
+        $this->authorize(
+            'update',
+            $materialRequest
+        );
+
+        $materialRequest->load([
+            'items',
+            'requester:id,name,email',
+        ]);
+
+        return response()->json([
+            'material_request' => $materialRequest,
+        ]);
+    }
+
     public function update(
         UpdateMaterialRequestRequest $request,
         MaterialRequest $materialRequest
@@ -400,8 +475,7 @@ class MaterialRequestController extends Controller
         );
 
         return to_route(
-            'supply-chain.material-requests.show',
-            $materialRequest
+            'supply-chain.material-requests.index'
         )->with(
             'success',
             'Material Request berhasil diperbarui.'
@@ -508,12 +582,48 @@ class MaterialRequestController extends Controller
                     'total_stock',
                     'minimum_stock',
                     'maximum_quantity',
+                    'accurate_raw',
                 ],
                 page: $page
             );
 
+        $data = collect($items->items())
+            ->map(function (ItemMaster $item): array {
+                $raw = $item->accurate_raw;
+
+                if (is_string($raw)) {
+                    $decoded = json_decode($raw, true);
+                    $raw = is_array($decoded) ? $decoded : [];
+                }
+
+                if (! is_array($raw)) {
+                    $raw = [];
+                }
+
+                $unitName = $item->unit_name
+                    ?: Arr::get($raw, 'unit.name')
+                    ?: Arr::get($raw, 'unitName')
+                    ?: Arr::get($raw, 'unit')
+                    ?: Arr::get($raw, 'unitNo');
+
+                return [
+                    'id' => $item->id,
+                    'item_code' => $item->item_code,
+                    'part_number' => $item->part_number,
+                    'item_description' => $item->item_description,
+                    'unit_name' => is_string($unitName) ? $unitName : null,
+                    'brand_name' => $item->brand_name,
+                    'preferred_vendor' => $item->preferred_vendor,
+                    'total_stock' => $item->total_stock,
+                    'minimum_stock' => $item->minimum_stock,
+                    'maximum_quantity' => $item->maximum_quantity,
+                ];
+            })
+            ->values()
+            ->all();
+
         return response()->json([
-            'data' => $items->items(),
+            'data' => $data,
             'meta' => [
                 'current_page' => $items->currentPage(),
 

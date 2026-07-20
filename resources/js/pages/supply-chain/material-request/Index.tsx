@@ -12,6 +12,16 @@ import {
     useState,
 } from 'react';
 
+import MaterialRequestFormModal from './components/MaterialRequestFormModal';
+
+import type {
+    CompanyOption,
+    DepartmentOption,
+    MaterialRequestFormData,
+    RequesterOption,
+    SelectOption,
+} from './types';
+
 type UserSummary = {
     id: number;
     name: string;
@@ -82,6 +92,7 @@ type MaterialRequest = {
     requester: UserSummary;
     department: DepartmentSummary;
     company: CompanySummary | null;
+    can_edit: boolean;
 };
 
 type PaginationLink = {
@@ -133,7 +144,11 @@ type Flash = {
 type PageProps = {
     materialRequests: PaginatedMaterialRequests;
     summary: Summary;
-    departments: DepartmentSummary[];
+    departments: DepartmentOption[];
+    companies: CompanyOption[];
+    requester: RequesterOption;
+    priorityOptions: SelectOption[];
+    requestTypeOptions: SelectOption[];
     filters: Filters;
     permissions: Permissions;
     flash?: Flash;
@@ -147,49 +162,15 @@ function formatDate(value: string | null): string {
 
     const date = new Date(value);
 
-    if (Number.isNaN(date.getTime())) return value;
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
 
     return new Intl.DateTimeFormat('id-ID', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
     }).format(date);
-}
-
-function formatDateTime(value: string | null): string {
-    if (!value) return '-';
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return value;
-
-    return new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    }).format(date);
-}
-
-function formatRequestType(
-    value: MaterialRequestType,
-): string {
-    const labels: Record<
-        MaterialRequestType,
-        string
-    > = {
-        STOCK_REPLENISHMENT:
-            'Stock Replenishment',
-        CUSTOMER_ORDER:
-            'Customer Order',
-        OFFICE_SUPPLY:
-            'Office Supply',
-        OTHER:
-            'Other',
-    };
-
-    return labels[value];
 }
 
 function formatStatus(
@@ -213,8 +194,39 @@ function formatStatus(
     return labels[value];
 }
 
+function localDateString(date: Date): string {
+    const timezoneOffset =
+        date.getTimezoneOffset() * 60000;
+
+    return new Date(
+        date.getTime() - timezoneOffset,
+    )
+        .toISOString()
+        .slice(0, 10);
+}
+
+function firstDayOfCurrentMonth(): string {
+    const now = new Date();
+
+    return localDateString(
+        new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            1,
+        ),
+    );
+}
+
+function today(): string {
+    return localDateString(
+        new Date(),
+    );
+}
+
 function readInitialHeaderCollapsed(): boolean {
-    if (typeof window === 'undefined') return false;
+    if (typeof window === 'undefined') {
+        return false;
+    }
 
     return (
         window.localStorage.getItem(
@@ -228,25 +240,33 @@ export default function MaterialRequestIndex() {
         materialRequests,
         summary,
         departments,
+        companies,
+        requester,
+        priorityOptions,
+        requestTypeOptions,
         filters,
         permissions,
         flash,
     } = usePage<PageProps>().props;
 
-    const [search, setSearch] = useState(
-        filters.search ?? '',
-    );
+    const [search, setSearch] =
+        useState(
+            filters.search ?? '',
+        );
 
     const [
         departmentId,
         setDepartmentId,
     ] = useState(
-        String(filters.department_id ?? ''),
+        String(
+            filters.department_id ?? '',
+        ),
     );
 
-    const [status, setStatus] = useState(
-        filters.status ?? '',
-    );
+    const [status, setStatus] =
+        useState(
+            filters.status ?? '',
+        );
 
     const [priority, setPriority] =
         useState(
@@ -255,30 +275,33 @@ export default function MaterialRequestIndex() {
 
     const [dateFrom, setDateFrom] =
         useState(
-            filters.date_from ?? '',
+            filters.date_from ??
+            firstDayOfCurrentMonth(),
         );
 
     const [dateTo, setDateTo] =
         useState(
-            filters.date_to ?? '',
+            filters.date_to ?? today(),
         );
 
     const [perPage, setPerPage] =
         useState(
-            String(filters.per_page ?? 10),
-        );
-
-    const [headerCollapsed, setHeaderCollapsed] =
-        useState(
-            readInitialHeaderCollapsed,
+            String(
+                filters.per_page ?? 10,
+            ),
         );
 
     const [
-        selectedMaterialRequest,
-        setSelectedMaterialRequest,
-    ] = useState<MaterialRequest | null>(
-        null,
+        headerCollapsed,
+        setHeaderCollapsed,
+    ] = useState(
+        readInitialHeaderCollapsed,
     );
+
+    const [
+        formModalOpen,
+        setFormModalOpen,
+    ] = useState(false);
 
     const summaryCards = useMemo(
         () => [
@@ -343,18 +366,36 @@ export default function MaterialRequestIndex() {
     );
 
     useEffect(() => {
-        setSearch(filters.search ?? '');
+        setSearch(
+            filters.search ?? '',
+        );
+
         setDepartmentId(
             String(
                 filters.department_id ?? '',
             ),
         );
-        setStatus(filters.status ?? '');
-        setPriority(filters.priority ?? '');
-        setDateFrom(filters.date_from ?? '');
-        setDateTo(filters.date_to ?? '');
+
+        setStatus(
+            filters.status ?? '',
+        );
+
+        setPriority(
+            filters.priority ?? '',
+        );
+
+        setDateFrom(
+            filters.date_from ?? '',
+        );
+
+        setDateTo(
+            filters.date_to ?? '',
+        );
+
         setPerPage(
-            String(filters.per_page ?? 10),
+            String(
+                filters.per_page ?? 10,
+            ),
         );
     }, [filters]);
 
@@ -364,6 +405,18 @@ export default function MaterialRequestIndex() {
             headerCollapsed ? '1' : '0',
         );
     }, [headerCollapsed]);
+
+    const handleFormSaved = () => {
+        setFormModalOpen(false);
+
+        router.reload({
+            only: [
+                'materialRequests',
+                'summary',
+                'flash',
+            ],
+        });
+    };
 
     const handleSearch = (
         event: FormEvent,
@@ -391,17 +444,32 @@ export default function MaterialRequestIndex() {
     };
 
     const handleClearFilter = () => {
+        const defaultDateFrom =
+            firstDayOfCurrentMonth();
+
+        const defaultDateTo =
+            today();
+
         setSearch('');
         setDepartmentId('');
         setStatus('');
         setPriority('');
-        setDateFrom('');
-        setDateTo('');
+        setDateFrom(
+            defaultDateFrom,
+        );
+        setDateTo(
+            defaultDateTo,
+        );
         setPerPage('10');
 
         router.get(
             '/supply-chain/material-requests',
-            {},
+            {
+                date_from:
+                    defaultDateFrom,
+                date_to:
+                    defaultDateTo,
+            },
             {
                 preserveScroll: true,
                 replace: true,
@@ -441,10 +509,12 @@ export default function MaterialRequestIndex() {
             <div className="space-y-4">
                 <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                     <div
-                        className={`flex flex-col justify-between gap-4 sm:flex-row sm:items-center ${headerCollapsed
+                        className={[
+                            'flex flex-col justify-between gap-4 sm:flex-row sm:items-center',
+                            headerCollapsed
                                 ? 'px-4 py-3'
-                                : 'px-6 py-5'
-                            }`}
+                                : 'px-6 py-5',
+                        ].join(' ')}
                     >
                         <div className="min-w-0">
                             <h1
@@ -464,10 +534,12 @@ export default function MaterialRequestIndex() {
                             )}
 
                             <div
-                                className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium text-gray-500 ${headerCollapsed
+                                className={[
+                                    'flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium text-gray-500',
+                                    headerCollapsed
                                         ? 'mt-1'
-                                        : 'mt-2'
-                                    }`}
+                                        : 'mt-2',
+                                ].join(' ')}
                             >
                                 {headerCollapsed && (
                                     <>
@@ -477,18 +549,21 @@ export default function MaterialRequestIndex() {
                                                 summary.total
                                             }
                                         />
+
                                         <CompactStat
                                             label="Draft"
                                             value={
                                                 summary.draft
                                             }
                                         />
+
                                         <CompactStat
                                             label="Waiting Review"
                                             value={
                                                 summary.submitted
                                             }
                                         />
+
                                         <CompactStat
                                             label="Approved"
                                             value={
@@ -526,8 +601,8 @@ export default function MaterialRequestIndex() {
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        router.visit(
-                                            '/supply-chain/material-requests/create',
+                                        setFormModalOpen(
+                                            true,
                                         )
                                     }
                                     className="inline-flex items-center justify-center rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600"
@@ -556,7 +631,9 @@ export default function MaterialRequestIndex() {
                         {summaryCards.map(
                             (card) => (
                                 <MetricCard
-                                    key={card.label}
+                                    key={
+                                        card.label
+                                    }
                                     label={
                                         card.label
                                     }
@@ -577,7 +654,9 @@ export default function MaterialRequestIndex() {
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                     <form
-                        onSubmit={handleSearch}
+                        onSubmit={
+                            handleSearch
+                        }
                         className="mb-6 grid grid-cols-1 gap-3 lg:grid-cols-12"
                     >
                         <div className="lg:col-span-4">
@@ -759,7 +838,9 @@ export default function MaterialRequestIndex() {
 
                             <input
                                 type="date"
-                                value={dateFrom}
+                                value={
+                                    dateFrom
+                                }
                                 onChange={(event) =>
                                     setDateFrom(
                                         event.target
@@ -875,8 +956,8 @@ export default function MaterialRequestIndex() {
                                                     <button
                                                         type="button"
                                                         onClick={() =>
-                                                            setSelectedMaterialRequest(
-                                                                materialRequest,
+                                                            router.visit(
+                                                                `/supply-chain/material-requests/${materialRequest.id}`,
                                                             )
                                                         }
                                                         className="text-sm font-semibold text-brand-500 hover:text-brand-600"
@@ -896,23 +977,20 @@ export default function MaterialRequestIndex() {
                                                 <td className="px-5 py-4">
                                                     <div className="font-semibold text-gray-900">
                                                         {
-                                                            materialRequest.requester
-                                                                .name
+                                                            materialRequest.requester.name
                                                         }
                                                     </div>
 
                                                     <div className="mt-1 text-xs text-gray-500">
                                                         {
-                                                            materialRequest.requester
-                                                                .email
+                                                            materialRequest.requester.email
                                                         }
                                                     </div>
                                                 </td>
 
                                                 <td className="px-5 py-4 text-sm text-gray-700">
                                                     {
-                                                        materialRequest.department
-                                                            .department_name
+                                                        materialRequest.department.department_name
                                                     }
                                                 </td>
 
@@ -958,31 +1036,11 @@ export default function MaterialRequestIndex() {
                                                 </td>
 
                                                 <td className="px-5 py-4">
-                                                    <div className="flex justify-end gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                setSelectedMaterialRequest(
-                                                                    materialRequest,
-                                                                )
-                                                            }
-                                                            className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
-                                                        >
-                                                            Detail
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                router.visit(
-                                                                    `/supply-chain/material-requests/${materialRequest.id}`,
-                                                                )
-                                                            }
-                                                            className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-gray-800"
-                                                        >
-                                                            Open
-                                                        </button>
-                                                    </div>
+                                                    <MaterialRequestRowActions
+                                                        materialRequest={
+                                                            materialRequest
+                                                        }
+                                                    />
                                                 </td>
                                             </tr>
                                         ),
@@ -990,7 +1048,9 @@ export default function MaterialRequestIndex() {
                                 ) : (
                                     <tr>
                                         <td
-                                            colSpan={11}
+                                            colSpan={
+                                                11
+                                            }
                                             className="px-5 py-12 text-center text-sm text-gray-500"
                                         >
                                             Data Material Request belum tersedia.
@@ -1018,7 +1078,10 @@ export default function MaterialRequestIndex() {
 
                         <div className="flex flex-wrap gap-2">
                             {materialRequests.links.map(
-                                (link, index) => (
+                                (
+                                    link,
+                                    index,
+                                ) => (
                                     <button
                                         key={`${link.label}-${index}`}
                                         type="button"
@@ -1040,10 +1103,13 @@ export default function MaterialRequestIndex() {
                                                 );
                                             }
                                         }}
-                                        className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${link.active
+                                        className={[
+                                            'rounded-lg px-3 py-2 text-sm font-semibold transition',
+                                            link.active
                                                 ? 'bg-brand-500 text-white'
-                                                : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                                            } disabled:cursor-not-allowed disabled:opacity-50`}
+                                                : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
+                                            'disabled:cursor-not-allowed disabled:opacity-50',
+                                        ].join(' ')}
                                         dangerouslySetInnerHTML={{
                                             __html:
                                                 link.label,
@@ -1056,19 +1122,107 @@ export default function MaterialRequestIndex() {
                 </div>
             </div>
 
-            {selectedMaterialRequest && (
-                <MaterialRequestDetailModal
-                    materialRequest={
-                        selectedMaterialRequest
-                    }
-                    onClose={() =>
-                        setSelectedMaterialRequest(
-                            null,
+            <MaterialRequestFormModal
+                open={formModalOpen}
+                mode="create"
+                requester={requester}
+                departments={departments}
+                companies={companies}
+                priorityOptions={
+                    priorityOptions
+                }
+                requestTypeOptions={
+                    requestTypeOptions
+                }
+                initialData={
+                    undefined as
+                    | Partial<MaterialRequestFormData>
+                    | undefined
+                }
+                materialRequestId={
+                    undefined
+                }
+                materialRequestNumber={
+                    undefined
+                }
+                onClose={() =>
+                    setFormModalOpen(
+                        false,
+                    )
+                }
+                onSaved={
+                    handleFormSaved
+                }
+            />
+        </AppLayout>
+    );
+}
+
+function MaterialRequestRowActions({
+    materialRequest,
+}: {
+    materialRequest: MaterialRequest;
+}) {
+    const internalUrl =
+        `/supply-chain/material-requests/${materialRequest.id}`;
+
+    const handleShareWhatsApp = () => {
+        const appUrl = (
+            import.meta.env.VITE_APP_URL ||
+            window.location.origin
+        ).replace(/\/$/, '');
+
+        const absoluteUrl =
+            `${appUrl}${internalUrl}`;
+
+        const message = [
+            '*Material Request*',
+            '',
+            `MR Number: ${materialRequest.mr_number}`,
+            `Subject: ${materialRequest.subject}`,
+            `Department: ${materialRequest.department.department_name}`,
+            `Status: ${formatStatus(materialRequest.status)}`,
+            '',
+            'Detail Material Request:',
+            absoluteUrl,
+        ].join('\n');
+
+        window.open(
+            `https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`,
+            '_blank',
+            'noopener,noreferrer',
+        );
+    };
+
+    return (
+        <div className="flex justify-end">
+            <div className="inline-flex overflow-hidden rounded-lg border border-gray-300 bg-white shadow-sm">
+                <button
+                    type="button"
+                    onClick={() =>
+                        router.visit(
+                            internalUrl,
                         )
                     }
-                />
-            )}
-        </AppLayout>
+                    className="inline-flex items-center gap-1.5 border-r border-gray-300 bg-gray-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-gray-800"
+                >
+                    <OpenIcon />
+                    Open
+                </button>
+
+                <button
+                    type="button"
+                    onClick={
+                        handleShareWhatsApp
+                    }
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-green-700 transition hover:bg-green-50"
+                    title="Share melalui WhatsApp Web"
+                >
+                    <WhatsAppIcon />
+                    WA
+                </button>
+            </div>
+        </div>
     );
 }
 
@@ -1142,10 +1296,12 @@ function ChevronIcon({
         <svg
             viewBox="0 0 20 20"
             fill="none"
-            className={`h-4 w-4 transition-transform ${collapsed
+            className={[
+                'h-4 w-4 transition-transform',
+                collapsed
                     ? 'rotate-180'
-                    : ''
-                }`}
+                    : '',
+            ].join(' ')}
             aria-hidden="true"
         >
             <path
@@ -1154,6 +1310,56 @@ function ChevronIcon({
                 strokeWidth="1.8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
+
+function OpenIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-4 w-4"
+            aria-hidden="true"
+        >
+            <path
+                d="M8 5H6.5A1.5 1.5 0 0 0 5 6.5v11A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5V16"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+            />
+            <path
+                d="M13 5h6v6M19 5l-8 8"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
+
+function WhatsAppIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-4 w-4"
+            aria-hidden="true"
+        >
+            <path
+                d="M20 11.5a8 8 0 0 1-11.8 7L4 19.5l1.1-4A8 8 0 1 1 20 11.5Z"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <path
+                d="M8.5 8.5c.4 3.5 2.5 5.6 6 6"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
             />
         </svg>
     );
@@ -1244,288 +1450,5 @@ function PriorityBadge({
         >
             {labels[priority]}
         </span>
-    );
-}
-
-function MaterialRequestDetailModal({
-    materialRequest,
-    onClose,
-}: {
-    materialRequest: MaterialRequest;
-    onClose: () => void;
-}) {
-    const sections: Array<{
-        title: string;
-        items: Array<[string, string]>;
-    }> = [
-            {
-                title: 'Request Information',
-                items: [
-                    [
-                        'MR Number',
-                        materialRequest.mr_number,
-                    ],
-                    [
-                        'MR Date',
-                        formatDate(
-                            materialRequest.mr_date,
-                        ),
-                    ],
-                    [
-                        'Requester',
-                        materialRequest.requester.name,
-                    ],
-                    [
-                        'Requester Email',
-                        materialRequest.requester.email,
-                    ],
-                    [
-                        'Department',
-                        materialRequest.department
-                            .department_name,
-                    ],
-                    [
-                        'Company',
-                        materialRequest.company
-                            ?.company_name ?? '-',
-                    ],
-                    [
-                        'Branch',
-                        materialRequest.branch ?? '-',
-                    ],
-                    [
-                        'Subject',
-                        materialRequest.subject,
-                    ],
-                    [
-                        'Request Type',
-                        formatRequestType(
-                            materialRequest.request_type,
-                        ),
-                    ],
-                    [
-                        'Priority',
-                        materialRequest.priority,
-                    ],
-                    [
-                        'Required Date',
-                        formatDate(
-                            materialRequest.required_date,
-                        ),
-                    ],
-                    [
-                        'Total Items',
-                        String(
-                            materialRequest.items_count,
-                        ),
-                    ],
-                ],
-            },
-            {
-                title: 'Reference Information',
-                items: [
-                    [
-                        'Customer Name',
-                        materialRequest.customer_name ??
-                        '-',
-                    ],
-                    [
-                        'Sales Order No',
-                        materialRequest.sales_order_no ??
-                        '-',
-                    ],
-                    [
-                        'Reference RFQ',
-                        materialRequest.reference_rfq ??
-                        '-',
-                    ],
-                    [
-                        'Remarks',
-                        materialRequest.remarks ?? '-',
-                    ],
-                ],
-            },
-            {
-                title: 'Workflow Information',
-                items: [
-                    [
-                        'Status',
-                        formatStatus(
-                            materialRequest.status,
-                        ),
-                    ],
-                    [
-                        'Current Approval Sequence',
-                        materialRequest.current_approval_sequence
-                            ? String(
-                                materialRequest.current_approval_sequence,
-                            )
-                            : '-',
-                    ],
-                    [
-                        'Submitted At',
-                        formatDateTime(
-                            materialRequest.submitted_at,
-                        ),
-                    ],
-                    [
-                        'Reviewed At',
-                        formatDateTime(
-                            materialRequest.reviewed_at,
-                        ),
-                    ],
-                    [
-                        'Approved At',
-                        formatDateTime(
-                            materialRequest.approved_at,
-                        ),
-                    ],
-                    [
-                        'Rejected At',
-                        formatDateTime(
-                            materialRequest.rejected_at,
-                        ),
-                    ],
-                    [
-                        'Closed At',
-                        formatDateTime(
-                            materialRequest.closed_at,
-                        ),
-                    ],
-                    [
-                        'Created At',
-                        formatDateTime(
-                            materialRequest.created_at,
-                        ),
-                    ],
-                    [
-                        'Updated At',
-                        formatDateTime(
-                            materialRequest.updated_at,
-                        ),
-                    ],
-                ],
-            },
-        ];
-
-    return (
-        <div
-            className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 px-4 py-6"
-            onMouseDown={(event) => {
-                if (
-                    event.target ===
-                    event.currentTarget
-                ) {
-                    onClose();
-                }
-            }}
-        >
-            <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
-                <div className="mb-6 flex items-start justify-between gap-4">
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-900">
-                            Material Request Detail
-                        </h2>
-
-                        <p className="mt-1 text-sm text-gray-600">
-                            Informasi ringkas Material Request dan status workflow.
-                        </p>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
-                    >
-                        ✕
-                    </button>
-                </div>
-
-                <div className="mb-5 flex flex-wrap gap-2">
-                    <StatusBadge
-                        status={
-                            materialRequest.status
-                        }
-                    />
-
-                    <PriorityBadge
-                        priority={
-                            materialRequest.priority
-                        }
-                    />
-                </div>
-
-                <div className="space-y-5">
-                    {sections.map(
-                        (section) => (
-                            <section
-                                key={
-                                    section.title
-                                }
-                                className="overflow-hidden rounded-xl border border-gray-200"
-                            >
-                                <div className="border-b border-gray-200 bg-gray-50 px-5 py-3">
-                                    <h3 className="text-sm font-bold text-gray-800">
-                                        {
-                                            section.title
-                                        }
-                                    </h3>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2">
-                                    {section.items.map(
-                                        ([
-                                            label,
-                                            value,
-                                        ]) => (
-                                            <div
-                                                key={
-                                                    label
-                                                }
-                                                className="border-b border-gray-100 px-5 py-4 md:border-r"
-                                            >
-                                                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                    {
-                                                        label
-                                                    }
-                                                </div>
-
-                                                <div className="mt-1 break-words text-sm font-medium text-gray-900">
-                                                    {
-                                                        value
-                                                    }
-                                                </div>
-                                            </div>
-                                        ),
-                                    )}
-                                </div>
-                            </section>
-                        ),
-                    )}
-                </div>
-
-                <div className="mt-6 flex justify-end gap-3">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
-                    >
-                        Close
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            router.visit(
-                                `/supply-chain/material-requests/${materialRequest.id}`,
-                            )
-                        }
-                        className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
-                    >
-                        Open Full Detail
-                    </button>
-                </div>
-            </div>
-        </div>
     );
 }

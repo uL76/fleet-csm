@@ -1,7 +1,4 @@
-export type SelectOption = {
-    value: string;
-    label: string;
-};
+export type SelectOption = { value: string; label: string };
 
 export type DepartmentOption = {
     id: number;
@@ -96,7 +93,6 @@ export type ItemMasterOption = {
 
 export type MaterialRequestItem = {
     id: number;
-    material_request_id: number;
     item_master_id: number | null;
     item_code: string;
     part_number: string | null;
@@ -111,60 +107,12 @@ export type MaterialRequestItem = {
     lead_time_days: number | null;
     remarks: string | null;
     process_status: string;
-    created_at: string;
-    updated_at: string;
 };
 
-export type UserSummary = {
-    id: number;
-    name: string;
-    email: string;
-};
-
-export type DepartmentSummary = {
-    id: number;
-    department_code: string;
-    department_name: string;
-};
-
-export type CompanySummary = {
-    id: number;
-    company_code: string;
-    company_name: string;
-};
-
-export type MaterialRequestApproval = {
-    id: number;
-    sequence: number;
-    action_type: 'REVIEW' | 'APPROVE';
-    status:
-        | 'PENDING'
-        | 'APPROVED'
-        | 'REJECTED'
-        | 'REVISION'
-        | 'SKIPPED';
-    comments: string | null;
-    acted_at: string | null;
-    assigned_user: UserSummary;
-    action_user: UserSummary | null;
-};
-
-export type MaterialRequestLog = {
-    id: number;
-    action: string;
-    from_status: string | null;
-    to_status: string | null;
-    comments: string | null;
-    metadata: Record<string, unknown> | null;
-    created_at: string;
-    user: UserSummary | null;
-};
-
-export type MaterialRequestDetail = {
+export type MaterialRequestEditData = {
     id: number;
     mr_number: string;
     mr_date: string;
-    requested_by: number;
     department_id: number;
     company_id: number | null;
     branch: string | null;
@@ -177,18 +125,10 @@ export type MaterialRequestDetail = {
     subject: string;
     remarks: string | null;
     status: MaterialRequestStatus;
-    current_approval_sequence: number | null;
-    submitted_at: string | null;
-    reviewed_at: string | null;
-    approved_at: string | null;
-    rejected_at: string | null;
-    closed_at: string | null;
-    created_at: string;
-    updated_at: string;
-    requester: UserSummary;
-    department: DepartmentSummary;
-    company: CompanySummary | null;
+    requester: {
+        id: number;
+        name: string;
+        email: string;
+    };
     items: MaterialRequestItem[];
-    approvals: MaterialRequestApproval[];
-    logs: MaterialRequestLog[];
 };

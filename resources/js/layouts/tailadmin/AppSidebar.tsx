@@ -56,7 +56,7 @@ const navItems: NavItem[] = [
     {
         icon: <GridIcon />,
         name: 'Dashboard',
-        path: '/fleet-dashboard',
+        path: '/dashboard',
     },
     {
         icon: <BoxCubeIcon />,
@@ -94,7 +94,7 @@ const navItems: NavItem[] = [
             },
             {
                 name: 'Approval Configuration',
-                path: '/supply-chain/approval-configurations',
+                path: '/supply-chain/approval-configuration',
                 pro: false,
             },
         ],
@@ -690,7 +690,7 @@ const AppSidebar = () => {
                 ].join(' ')}
             >
                 <Link
-                    href="/fleet-dashboard"
+                    href="/dashboard"
                     className="flex min-w-0 items-center gap-3"
                 >
                     <img
@@ -713,7 +713,7 @@ const AppSidebar = () => {
                 </Link>
             </div>
 
-            <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
+            <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto duration-300 ease-linear">
                 <nav className="mb-6">
                     <div className="flex flex-col gap-4">
                         <div>
@@ -773,6 +773,58 @@ const AppSidebar = () => {
                     <SidebarWidget />
                 )}
                 */}
+            </div>
+
+            <div className="mt-auto border-t border-gray-200 px-0 py-4 dark:border-gray-800">
+                <Link
+                    href="/logout"
+                    method="post"
+                    as="button"
+                    className={[
+                        'menu-item group w-full cursor-pointer',
+                        'menu-item-inactive',
+                        !isExpanded && !isHovered
+                            ? 'lg:justify-center'
+                            : 'lg:justify-start',
+                    ].join(' ')}
+                >
+                    <span className="menu-item-icon-size menu-item-icon-inactive">
+                        <svg
+                            className="h-5 w-5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                d="M15.75 9V5.75C15.75 4.64543 14.8546 3.75 13.75 3.75H6.75C5.64543 3.75 4.75 4.64543 4.75 5.75V18.25C4.75 19.3546 5.64543 20.25 6.75 20.25H13.75C14.8546 20.25 15.75 19.3546 15.75 18.25V15"
+                                stroke="currentColor"
+                                strokeWidth="1.7"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                            <path
+                                d="M18.25 8.75L21.25 12L18.25 15.25"
+                                stroke="currentColor"
+                                strokeWidth="1.7"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                            <path
+                                d="M9.75 12H21"
+                                stroke="currentColor"
+                                strokeWidth="1.7"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    </span>
+
+                    {(isExpanded || isHovered || isMobileOpen) && (
+                        <span className="menu-item-text">
+                            Logout
+                        </span>
+                    )}
+                </Link>
             </div>
         </aside>
     );

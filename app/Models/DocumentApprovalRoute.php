@@ -15,13 +15,12 @@ class DocumentApprovalRoute extends Model
         'user_id',
         'is_required',
         'is_active',
-        'created_by',
-        'updated_by',
     ];
 
     protected function casts(): array
     {
         return [
+            'sequence' => 'integer',
             'is_required' => 'boolean',
             'is_active' => 'boolean',
         ];
@@ -29,29 +28,11 @@ class DocumentApprovalRoute extends Model
 
     public function department(): BelongsTo
     {
-        return $this->belongsTo(
-            Department::class
-        );
+        return $this->belongsTo(Department::class, 'department_id');
     }
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
-    }
-
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(
-            User::class,
-            'created_by'
-        );
-    }
-
-    public function updater(): BelongsTo
-    {
-        return $this->belongsTo(
-            User::class,
-            'updated_by'
-        );
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

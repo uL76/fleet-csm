@@ -184,7 +184,7 @@ export default function ItemMasterPickerModal({
 
     return (
         <div
-            className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 px-4 py-6"
+            className="fixed inset-0 z-[100010] flex items-center justify-center bg-black/50 px-4 py-6"
             onMouseDown={(event) => {
                 if (
                     event.target ===
